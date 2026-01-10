@@ -468,7 +468,7 @@ export default function HomePage() {
               </p>
               <form
                 className="contact-form"
-                action="mailto:hello@cutandcuddle.co.nz"
+                action="mailto:cutandcuddle01@gmail.com"
                 method="post"
                 encType="text/plain"
               >
@@ -535,8 +535,8 @@ export default function HomePage() {
           <a href="tel:+6465551234">
             <FaPhone /> (06) 555 1234
           </a>
-          <a href="mailto:hello@cutandcuddle.co.nz">
-            <FaEnvelope /> hello@cutandcuddle.co.nz
+          <a href="mailto:cutandcuddle01@gmail.com">
+            <FaEnvelope /> cutandcuddle01@gmail.com
           </a>
         </div>
       </footer>
