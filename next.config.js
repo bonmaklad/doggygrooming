@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Export the site as static HTML to the `out` folder
-  output: "export",
+  // Build a standalone server bundle for deployment
+  output: "standalone",
   images: {
     // Disable Next.js image optimization when exporting static HTML
     unoptimized: true,
