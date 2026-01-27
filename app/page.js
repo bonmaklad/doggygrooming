@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import galleryPhotoOne from "./images/5152210126990150542.jpg";
 import galleryPhotoTwo from "./images/5152210126990150543.jpg";
-import galleryPhotoThree from "./images/Media (1).jpeg";
+import aboutPhoto from "./images/Media (1).jpeg";
 import galleryPhotoFour from "./images/Media (2).jpeg";
 import galleryPhotoFive from "./images/Media (3).jpeg";
 import galleryPhotoSix from "./images/Media (4).jpeg";
@@ -100,7 +100,7 @@ const galleryImages = [
     alt: "Happy pup after a fresh trim",
   },
   {
-    src: galleryPhotoThree,
+    src: aboutPhoto,
     alt: "Fluffy pup showing off a tidy coat",
   },
   {
@@ -125,8 +125,8 @@ const aboutHighlights = [
 
 const bookingHighlights = [
   { icon: FaCalendarCheck, text: "Friday 9–5 & Saturday 9–1" },
-  { icon: FaPaw, text: "2-hour grooming sessions" },
-  { icon: FaEnvelope, text: "Email confirmation & reminders" },
+  { icon: FaPaw, text: "2-hour grooming slots" },
+  { icon: FaEnvelope, text: "Email confirmation" },
 ];
 
 const navItems = [
@@ -359,7 +359,7 @@ export default function HomePage() {
               />
               <div className="media-note">
                 <FaHeart />
-                Tailored trims &amp; cuddles in KeriKeri
+                KeriKeri Area on 021 934 841
               </div>
             </div>
           </div>
@@ -369,7 +369,7 @@ export default function HomePage() {
           <div className="container about-grid observe">
             <div className="about-image">
               <Image
-                src="https://images.pexels.com/photos/7210666/pexels-photo-7210666.jpeg"
+                src={aboutPhoto}
                 alt="Groomer blow-drying a small dog"
                 width={560}
                 height={600}
@@ -378,7 +378,7 @@ export default function HomePage() {
             <div className="about-content">
               <h2>Meet Cut &amp; Cuddle</h2>
               <p>
-                We are a Whanganui-based grooming studio delivering calm, caring
+                We are a KeriKeri-based grooming studio delivering calm, caring
                 experiences for every dog who walks through our doors. Our team
                 specializes in gentle handling, breed-specific styling, and creating
                 a spa day that feels like a hug.
@@ -661,39 +661,37 @@ export default function HomePage() {
             <div className="contact-card">
               <h2>Let’s Chat</h2>
               <p>
-                Ready to schedule or have a question? Send us a note and we’ll be in
-                touch within one business day.
+                Ready to schedule or have a question? Reach out and we’ll be in touch
+                within one business day.
               </p>
-              <form
-                className="contact-form"
-                action="mailto:cutandcuddle01@gmail.com"
-                method="post"
-                encType="text/plain"
-              >
-                <div className="form-group">
-                  <label htmlFor="name">Name</label>
-                  <input id="name" name="name" type="text" required />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="email">Email</label>
-                  <input id="email" name="email" type="email" required />
-                </div>
-                <div className="form-group">
-                  <label htmlFor="message">Message</label>
-                  <textarea id="message" name="message" rows={4} required />
-                </div>
-                <button type="submit" className="btn primary">
-                  Send Message
-                </button>
-              </form>
+              <div className="contact-links">
+                <a className="contact-link" href="mailto:cutandcuddle01@gmail.com">
+                  <span className="contact-icon">
+                    <FaEnvelope />
+                  </span>
+                  <span>
+                    <span className="contact-label">Email</span>
+                    <span className="contact-value">cutandcuddle01@gmail.com</span>
+                  </span>
+                </a>
+                <a className="contact-link" href="tel:+6421934841">
+                  <span className="contact-icon">
+                    <FaPhone />
+                  </span>
+                  <span>
+                    <span className="contact-label">Phone</span>
+                    <span className="contact-value">021 934 841</span>
+                  </span>
+                </a>
+              </div>
             </div>
             <div className="visit-card">
               <div className="hours">
                 <h3>Hours</h3>
                 <ul>
-                  <li>Mon–Fri: 8:30am – 6:00pm</li>
-                  <li>Saturday: 9:00am – 4:00pm</li>
-                  <li>Sunday: By appointment</li>
+                  <li>Fri: 9:00am – 5:00pm</li>
+                  <li>Saturday: 9:00am – 1:00pm</li>
+                  {/* <li>Sunday: By appointment</li> */}
                 </ul>
               </div>
               <div className="location">
@@ -718,9 +716,9 @@ export default function HomePage() {
                 <a href="https://www.instagram.com" aria-label="Instagram" target="_blank" rel="noreferrer">
                   <FaInstagram />
                 </a>
-                <a href="https://www.tiktok.com" aria-label="TikTok" target="_blank" rel="noreferrer">
+                {/* <a href="https://www.tiktok.com" aria-label="TikTok" target="_blank" rel="noreferrer">
                   <FaTiktok />
-                </a>
+                </a> */}
               </div>
             </div>
           </div>

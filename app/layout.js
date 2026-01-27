@@ -18,7 +18,7 @@ const quicksand = Quicksand({
 export const metadata = {
   title: "Cut & Cuddle Grooming",
   description:
-    "Cut & Cuddle offers loving, gentle grooming experiences for every dog in Whanganui. Explore services, book online, and discover our happy pups gallery.",
+    "Cut & Cuddle offers loving, gentle grooming experiences for every dog in KeriKeri. Explore services, book online, and discover our happy pups gallery.",
 };
 
 export default function RootLayout({ children }) {
