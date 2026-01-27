@@ -745,6 +745,19 @@ textarea:focus {
   box-shadow: 0 0 0 4px rgba(156, 207, 243, 0.28);
 }
 
+select[aria-invalid="true"],
+input[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: rgba(178, 59, 59, 0.6);
+  box-shadow: 0 0 0 4px rgba(178, 59, 59, 0.15);
+}
+
+.field-error {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #b23b3b;
+}
+
 .gallery-grid {
   display: grid;
   grid-gap: 1.3rem;
@@ -807,6 +820,12 @@ textarea:focus {
   padding: 1.2rem;
   border-radius: var(--radius-md);
   background: rgba(156, 207, 243, 0.12);
+  border: 1px solid transparent;
+}
+
+.slot-picker.error {
+  border-color: rgba(178, 59, 59, 0.35);
+  background: rgba(178, 59, 59, 0.08);
 }
 
 .slot-picker-header {

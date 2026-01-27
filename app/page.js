@@ -147,6 +147,7 @@ export default function HomePage() {
   const [selectedDayKey, setSelectedDayKey] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [bookingStatus, setBookingStatus] = useState({ state: "idle", message: "" });
+  const [bookingErrors, setBookingErrors] = useState({});
   const [formValues, setFormValues] = useState({
     service: bookingServices[0].value,
     dogSize: bookingDogSizes[0].value,
@@ -236,6 +237,13 @@ export default function HomePage() {
   const handleFormChange = (event) => {
     const { name, value } = event.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
+    if (bookingErrors[name]) {
+      setBookingErrors((prev) => {
+        const nextErrors = { ...prev };
+        delete nextErrors[name];
+        return nextErrors;
+      });
+    }
   };
 
   const handleDaySelect = (dayKey) => {
@@ -243,12 +251,43 @@ export default function HomePage() {
     setSelectedSlot(null);
   };
 
+  const validateBooking = (values, slot) => {
+    const errors = {};
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!values.name.trim()) {
+      errors.name = "Please enter your name.";
+    }
+    if (!values.email.trim()) {
+      errors.email = "Please enter your email.";
+    } else if (!emailPattern.test(values.email.trim())) {
+      errors.email = "Please enter a valid email address.";
+    }
+    if (values.phone.trim()) {
+      const phoneDigits = values.phone.replace(/\D/g, "");
+      if (phoneDigits.length < 7) {
+        errors.phone = "Please enter a valid phone number.";
+      }
+    }
+    if (!slot) {
+      errors.slot = "Please choose a time slot.";
+    }
+
+    return errors;
+  };
+
   const handleBookingSubmit = async (event) => {
     event.preventDefault();
-    if (!selectedSlot) {
-      setBookingStatus({ state: "error", message: "Please choose a time slot first." });
+    const errors = validateBooking(formValues, selectedSlot);
+    if (Object.keys(errors).length) {
+      setBookingErrors(errors);
+      setBookingStatus({
+        state: "error",
+        message: "Please fix the highlighted fields and try again.",
+      });
       return;
     }
+    setBookingErrors({});
     setBookingStatus({ state: "loading", message: "Booking your appointment..." });
 
     try {
@@ -271,6 +310,7 @@ export default function HomePage() {
         state: "success",
         message: "Booked! Check your email for confirmation.",
       });
+      setBookingErrors({});
       setSelectedSlot(null);
       fetchAvailability();
     } catch (error) {
@@ -488,7 +528,7 @@ export default function HomePage() {
               </ul>
             </div>
             <div className="booking-form-card">
-              <form onSubmit={handleBookingSubmit}>
+              <form onSubmit={handleBookingSubmit} noValidate>
                 <div className="form-grid">
                   <div className="form-group">
                     <label htmlFor="booking-service">Service</label>
@@ -539,8 +579,15 @@ export default function HomePage() {
                       type="text"
                       value={formValues.name}
                       onChange={handleFormChange}
+                      aria-invalid={bookingErrors.name ? "true" : "false"}
+                      aria-describedby={bookingErrors.name ? "booking-name-error" : undefined}
                       required
                     />
+                    {bookingErrors.name && (
+                      <p className="field-error" id="booking-name-error">
+                        {bookingErrors.name}
+                      </p>
+                    )}
                   </div>
                   <div className="form-group">
                     <label htmlFor="booking-email">Email</label>
@@ -550,8 +597,15 @@ export default function HomePage() {
                       type="email"
                       value={formValues.email}
                       onChange={handleFormChange}
+                      aria-invalid={bookingErrors.email ? "true" : "false"}
+                      aria-describedby={bookingErrors.email ? "booking-email-error" : undefined}
                       required
                     />
+                    {bookingErrors.email && (
+                      <p className="field-error" id="booking-email-error">
+                        {bookingErrors.email}
+                      </p>
+                    )}
                   </div>
                   <div className="form-group">
                     <label htmlFor="booking-phone">Phone</label>
@@ -562,7 +616,14 @@ export default function HomePage() {
                       value={formValues.phone}
                       onChange={handleFormChange}
                       placeholder="Optional"
+                      aria-invalid={bookingErrors.phone ? "true" : "false"}
+                      aria-describedby={bookingErrors.phone ? "booking-phone-error" : undefined}
                     />
+                    {bookingErrors.phone && (
+                      <p className="field-error" id="booking-phone-error">
+                        {bookingErrors.phone}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -578,7 +639,7 @@ export default function HomePage() {
                   />
                 </div>
 
-                <div className="slot-picker">
+                <div className={`slot-picker${bookingErrors.slot ? " error" : ""}`}>
                   <div className="slot-picker-header">
                     <h3>Choose a time</h3>
                     <span>2-hour sessions · Friday 9–5 · Saturday 9–1</span>
@@ -618,12 +679,19 @@ export default function HomePage() {
                                 className={`slot-button${
                                   selectedSlot?.start === slot.start ? " selected" : ""
                                 }`}
-                                onClick={() =>
+                                onClick={() => {
                                   setSelectedSlot({
                                     ...slot,
                                     dateLabel: selectedDay?.dateLabel || "",
-                                  })
-                                }
+                                  });
+                                  if (bookingErrors.slot) {
+                                    setBookingErrors((prev) => {
+                                      const nextErrors = { ...prev };
+                                      delete nextErrors.slot;
+                                      return nextErrors;
+                                    });
+                                  }
+                                }}
                               >
                                 {slot.label}
                               </button>
@@ -631,6 +699,11 @@ export default function HomePage() {
                         </div>
                       </div>
                     </div>
+                  )}
+                  {bookingErrors.slot && (
+                    <p className="field-error" id="booking-slot-error">
+                      {bookingErrors.slot}
+                    </p>
                   )}
                   {selectedSlot && (
                     <p className="slot-selected">
