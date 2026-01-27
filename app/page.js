@@ -1,16 +1,23 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import galleryPhotoOne from "./images/5152210126990150542.jpg";
+import galleryPhotoTwo from "./images/5152210126990150543.jpg";
+import galleryPhotoThree from "./images/Media (1).jpeg";
+import galleryPhotoFour from "./images/Media (2).jpeg";
+import galleryPhotoFive from "./images/Media (3).jpeg";
+import galleryPhotoSix from "./images/Media (4).jpeg";
 import {
   FaPaw,
   FaLeaf,
+  FaCut,
+  FaBath,
   FaBone,
   FaHandsHelping,
   FaPumpSoap,
   FaCalendarCheck,
   FaEnvelope,
-  FaCarSide,
   FaPhone,
   FaFacebookF,
   FaInstagram,
@@ -19,72 +26,94 @@ import {
   FaHeart,
 } from "react-icons/fa";
 
-const pricingMatrix = {
-  small: { basic: 45, full: 65, show: 90 },
-  medium: { basic: 55, full: 80, show: 105 },
-  large: { basic: 70, full: 95, show: 120 },
-  xl: { basic: 85, full: 110, show: 140 },
-};
-
-const dogSizes = [
-  { value: "small", label: "Small (up to 10kg)" },
-  { value: "medium", label: "Medium (11–20kg)" },
-  { value: "large", label: "Large (21–35kg)" },
-  { value: "xl", label: "XL (36kg+)" },
-];
-
-const styleOptions = [
-  { value: "basic", label: "Basic Trim" },
-  { value: "full", label: "Full Groom" },
-  { value: "show", label: "Show Style" },
-];
-
-const services = [
+const servicesOffered = [
+  {
+    title: "Wash & Blow Dry",
+    description:
+      "A thorough wash and gentle blow dry to leave your dog clean, fresh, and soft.",
+    prices: [
+      { label: "Small", value: 50 },
+      { label: "Medium", value: 60 },
+      { label: "Large", value: 70 },
+    ],
+    icon: FaPumpSoap,
+    theme: "wash",
+  },
   {
     title: "Basic Trim",
-    description: "Bath, blow-dry, tidy trim, nail clipping, and ear cleaning.",
-    image: "https://images.pexels.com/photos/7717424/pexels-photo-7717424.jpeg",
-    alt: "Dog receiving a brush",
+    description:
+      "Tidy-up to maintain coat shape and overall appearance between full grooms.",
+    prices: [
+      { label: "Small", value: 65 },
+      { label: "Medium", value: 75 },
+      { label: "Large", value: 85 },
+    ],
+    icon: FaCut,
+    theme: "trim",
   },
   {
     title: "Full Groom",
-    description: "Full-body clip, style finish, teeth cleaning, and paw balm.",
-    image: "https://images.pexels.com/photos/5731918/pexels-photo-5731918.jpeg",
-    alt: "Dog getting a full groom",
+    description:
+      "Complete grooming including bathing, drying, brushing, clipping, nail trimming, and finishing touches.",
+    prices: [
+      { label: "Small", value: 90 },
+      { label: "Medium", value: 100 },
+      { label: "Large", value: 120 },
+    ],
+    icon: FaBath,
+    theme: "groom",
   },
   {
-    title: "Show Style",
+    title: "De-Shed Treatment",
     description:
-      "Breed-specific cut, coat brightening treatment, and finishing spray.",
-    image: "https://images.pexels.com/photos/7210453/pexels-photo-7210453.jpeg",
-    alt: "Show dog in grooming process",
+      "Ideal for double-coated or heavy shedding breeds. Reduces excess fur and promotes coat health.",
+    prices: [
+      { label: "Small", value: 90 },
+      { label: "Medium", value: 100 },
+      { label: "Large", value: 130 },
+    ],
+    icon: FaLeaf,
+    theme: "deshed",
   },
+];
+
+const bookingServices = [
+  { value: "Wash & Blow Dry", label: "Wash & Blow Dry" },
+  { value: "Basic Trim", label: "Basic Trim" },
+  { value: "Full Groom", label: "Full Groom" },
+  { value: "De-Shed Treatment", label: "De-Shed Treatment" },
+];
+
+const bookingDogSizes = [
+  { value: "Small", label: "Small (up to 10kg)" },
+  { value: "Medium", label: "Medium (11–20kg)" },
+  { value: "Large", label: "Large (21–35kg)" },
 ];
 
 const galleryImages = [
   {
-    src: "https://images.pexels.com/photos/4577807/pexels-photo-4577807.jpeg",
-    alt: "Small white dog with bow after grooming",
+    src: galleryPhotoOne,
+    alt: "Groomed dog portrait in the salon",
   },
   {
-    src: "https://images.pexels.com/photos/7210539/pexels-photo-7210539.jpeg",
-    alt: "Happy dog with fresh haircut",
+    src: galleryPhotoTwo,
+    alt: "Happy pup after a fresh trim",
   },
   {
-    src: "https://images.pexels.com/photos/7210436/pexels-photo-7210436.jpeg",
-    alt: "Corgi being combed at groomer",
+    src: galleryPhotoThree,
+    alt: "Fluffy pup showing off a tidy coat",
   },
   {
-    src: "https://images.pexels.com/photos/9769850/pexels-photo-9769850.jpeg",
-    alt: "Fluffy dog with a bandana",
+    src: galleryPhotoFour,
+    alt: "Dog freshly groomed and camera ready",
   },
   {
-    src: "https://images.pexels.com/photos/7210531/pexels-photo-7210531.jpeg",
-    alt: "Poodle with fresh trim",
+    src: galleryPhotoFive,
+    alt: "Pup with a clean, soft finish",
   },
   {
-    src: "https://images.pexels.com/photos/7210527/pexels-photo-7210527.jpeg",
-    alt: "Dog posing after grooming session",
+    src: galleryPhotoSix,
+    alt: "Groomed dog smiling for the gallery",
   },
 ];
 
@@ -95,9 +124,9 @@ const aboutHighlights = [
 ];
 
 const bookingHighlights = [
-  { icon: FaCalendarCheck, text: "Live availability updates" },
-  { icon: FaEnvelope, text: "Email confirmation within 24 hours" },
-  { icon: FaCarSide, text: "Add pick-up & drop-off at checkout" },
+  { icon: FaCalendarCheck, text: "Friday 9–5 & Saturday 9–1" },
+  { icon: FaPaw, text: "2-hour grooming sessions" },
+  { icon: FaEnvelope, text: "Email confirmation & reminders" },
 ];
 
 const navItems = [
@@ -109,35 +138,44 @@ const navItems = [
   { label: "Contact", href: "#contact" },
 ];
 
-const storageKey = "cutAndCuddlePricing";
-const pickupFee = 15;
-
-const calculateTotal = (size, style, pickup) => {
-  const base = pricingMatrix[size][style];
-  return base + (pickup ? pickupFee : 0);
-};
-
 export default function HomePage() {
   const [navOpen, setNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
-  const [size, setSize] = useState("small");
-  const [style, setStyle] = useState("basic");
-  const [pickup, setPickup] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [availability, setAvailability] = useState([]);
+  const [availabilityStatus, setAvailabilityStatus] = useState("loading");
+  const [availabilityError, setAvailabilityError] = useState("");
+  const [selectedDayKey, setSelectedDayKey] = useState("");
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [bookingStatus, setBookingStatus] = useState({ state: "idle", message: "" });
+  const [formValues, setFormValues] = useState({
+    service: bookingServices[0].value,
+    dogSize: bookingDogSizes[0].value,
+    name: "",
+    email: "",
+    phone: "",
+    dogName: "",
+    notes: "",
+  });
 
-  const total = useMemo(() => calculateTotal(size, style, pickup), [size, style, pickup]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
+  const fetchAvailability = useCallback(async () => {
+    setAvailabilityStatus("loading");
+    setAvailabilityError("");
     try {
-      const savedPrefs = window.localStorage.getItem(storageKey);
-      if (!savedPrefs) return;
-      const parsed = JSON.parse(savedPrefs);
-      if (parsed.size) setSize(parsed.size);
-      if (parsed.style) setStyle(parsed.style);
-      if (typeof parsed.pickup === "boolean") setPickup(parsed.pickup);
+      const response = await fetch("/api/availability");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to load availability.");
+      }
+      setAvailability(data.slots || []);
+      if (data.slots?.length) {
+        setSelectedDayKey((prev) =>
+          data.slots.some((day) => day.dateKey === prev) ? prev : data.slots[0].dateKey
+        );
+      }
+      setAvailabilityStatus("ready");
     } catch (error) {
-      console.warn("Unable to load preferences from localStorage.", error);
+      setAvailabilityStatus("error");
+      setAvailabilityError(error?.message || "Unable to load availability.");
     }
   }, []);
 
@@ -192,24 +230,59 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (!saved) return;
-    const timeout = window.setTimeout(() => setSaved(false), 900);
-    return () => window.clearTimeout(timeout);
-  }, [saved]);
+    fetchAvailability();
+  }, [fetchAvailability]);
 
-  const handleSavePreferences = (event) => {
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleDaySelect = (dayKey) => {
+    setSelectedDayKey(dayKey);
+    setSelectedSlot(null);
+  };
+
+  const handleBookingSubmit = async (event) => {
     event.preventDefault();
-    if (typeof window === "undefined") return;
+    if (!selectedSlot) {
+      setBookingStatus({ state: "error", message: "Please choose a time slot first." });
+      return;
+    }
+    setBookingStatus({ state: "loading", message: "Booking your appointment..." });
+
     try {
-      window.localStorage.setItem(
-        storageKey,
-        JSON.stringify({ size, style, pickup })
-      );
-      setSaved(true);
+      const response = await fetch("/api/book", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...formValues,
+          start: selectedSlot.start,
+          end: selectedSlot.end,
+        }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Unable to complete booking.");
+      }
+
+      setBookingStatus({
+        state: "success",
+        message: "Booked! Check your email for confirmation.",
+      });
+      setSelectedSlot(null);
+      fetchAvailability();
     } catch (error) {
-      console.warn("Unable to save preferences to localStorage.", error);
+      setBookingStatus({
+        state: "error",
+        message: error?.message || "Unable to complete booking.",
+      });
     }
   };
+
+  const selectedDay =
+    availability.find((day) => day.dateKey === selectedDayKey) || availability[0];
 
   const currentYear = new Date().getFullYear();
 
@@ -286,7 +359,7 @@ export default function HomePage() {
               />
               <div className="media-note">
                 <FaHeart />
-                Tailored trims &amp; cuddles in Whanganui
+                Tailored trims &amp; cuddles in KeriKeri
               </div>
             </div>
           </div>
@@ -323,89 +396,56 @@ export default function HomePage() {
 
         <section id="services" className="section">
           <div className="container">
-            <div className="section-header observe">
-              <span className="tagline">Tailored trims</span>
-              <h2>Services &amp; Pricing</h2>
+            <div className="section-header observe services-header">
+              <h2>Services Offered</h2>
               <p>
-                Choose the perfect pamper for your pup. Pricing updates instantly—
-                and you can save your preferences for next time.
+                At Cut &amp; Cuddle Dog Groomers, I provide professional grooming
+                services tailored to your dog&apos;s individual needs. Every service
+                is carried out with care, patience, and a focus on your dog&apos;s wellbeing.
               </p>
             </div>
-            <div className="services-grid">
-              {services.map((service) => (
-                <article className="service-card observe" key={service.title}>
-                  <Image
-                    src={service.image}
-                    alt={service.alt}
-                    width={480}
-                    height={360}
-                  />
-                  <div>
-                    <h3>{service.title}</h3>
-                    <p>{service.description}</p>
-                  </div>
-                </article>
-              ))}
+            <div className="services-divider" aria-hidden="true">
+              <span />
+              <FaHeart />
+              <span />
             </div>
-
-            <div className="calculator observe">
-              <h3>Instant Price Calculator</h3>
-              <form onSubmit={handleSavePreferences}>
-                <div className="form-group">
-                  <label htmlFor="dog-size">Dog Size</label>
-                  <select
-                    id="dog-size"
-                    name="dog-size"
-                    value={size}
-                    onChange={(event) => setSize(event.target.value)}
+            <div className="services-offered">
+              {servicesOffered.map((service) => {
+                const Icon = service.icon;
+                return (
+                  <article
+                    className={`service-band ${service.theme} observe`}
+                    key={service.title}
                   >
-                    {dogSizes.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="style">Hair Style</label>
-                  <select
-                    id="style"
-                    name="style"
-                    value={style}
-                    onChange={(event) => setStyle(event.target.value)}
-                  >
-                    {styleOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="form-group toggle">
-                  <label htmlFor="pickup-toggle">Pick-up &amp; Drop-off</label>
-                  <label className="switch">
-                    <input
-                      id="pickup-toggle"
-                      type="checkbox"
-                      checked={pickup}
-                      onChange={(event) => setPickup(event.target.checked)}
-                    />
-                    <span className="slider" />
-                  </label>
-                  <span className="toggle-note">Add concierge transport for ${pickupFee}</span>
-                </div>
-                <div className="price-display">
-                  <span>Total estimate</span>
-                  <strong className={saved ? "saved" : undefined}>${total}</strong>
-                </div>
-                <button type="submit" className="btn primary">
-                  Save Preferences
-                </button>
-              </form>
-              <p className="calculator-note">
-                * Price is an estimate. Final quotes depend on coat condition and styling
-                time.
-              </p>
+                    <div className="service-icon">
+                      <Icon />
+                    </div>
+                    <div className="service-content">
+                      <div className="service-heading">
+                        <h3>{service.title}</h3>
+                        {/* <span>Prices From</span> */}
+                      </div>
+                      <p>{service.description}</p>
+                      <div className="service-prices">
+                        {service.prices.map((price) => (
+                          <span key={price.label}>
+                            {price.label}: ${price.value}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+            <p className="services-disclaimer">
+              Prices may vary depending on coat condition, size, temperament, and grooming requirements.
+            </p>
+            <div className="services-cta">
+              <h3>Book Your Groom Today!</h3>
+              <a className="btn primary" href="#booking">
+                Book Now
+              </a>
             </div>
           </div>
         </section>
@@ -436,9 +476,8 @@ export default function HomePage() {
               <span className="tagline">Plan your visit</span>
               <h2>Book Your Pup’s Spa Day</h2>
               <p>
-                View our availability and request your appointment straight from
-                Google Calendar. Choose a time that suits you, and we’ll confirm by
-                email.
+                Tell us about your pup, choose the service you need, and pick an open
+                Friday or Saturday slot. We’ll send your confirmation by email.
               </p>
               <ul className="pill-list">
                 {bookingHighlights.map(({ icon: Icon, text }) => (
@@ -448,12 +487,171 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-            <div className="calendar-wrapper">
-              <iframe
-                title="Cut & Cuddle Booking Calendar"
-                src="https://calendar.google.com/calendar/embed?src=c_995f0cf1bcd8044b0d62424a0c5a577db96ac58de1a3a98753f6ad1988dd9eb9%40group.calendar.google.com&ctz=Pacific/Auckland"
-                loading="lazy"
-              />
+            <div className="booking-form-card">
+              <form onSubmit={handleBookingSubmit}>
+                <div className="form-grid">
+                  <div className="form-group">
+                    <label htmlFor="booking-service">Service</label>
+                    <select
+                      id="booking-service"
+                      name="service"
+                      value={formValues.service}
+                      onChange={handleFormChange}
+                    >
+                      {bookingServices.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="booking-dog-size">Dog Size</label>
+                    <select
+                      id="booking-dog-size"
+                      name="dogSize"
+                      value={formValues.dogSize}
+                      onChange={handleFormChange}
+                    >
+                      {bookingDogSizes.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="booking-dog-name">Dog Name</label>
+                    <input
+                      id="booking-dog-name"
+                      name="dogName"
+                      type="text"
+                      value={formValues.dogName}
+                      onChange={handleFormChange}
+                      placeholder="Optional"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="booking-name">Your Name</label>
+                    <input
+                      id="booking-name"
+                      name="name"
+                      type="text"
+                      value={formValues.name}
+                      onChange={handleFormChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="booking-email">Email</label>
+                    <input
+                      id="booking-email"
+                      name="email"
+                      type="email"
+                      value={formValues.email}
+                      onChange={handleFormChange}
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="booking-phone">Phone</label>
+                    <input
+                      id="booking-phone"
+                      name="phone"
+                      type="tel"
+                      value={formValues.phone}
+                      onChange={handleFormChange}
+                      placeholder="Optional"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="booking-notes">Notes</label>
+                  <textarea
+                    id="booking-notes"
+                    name="notes"
+                    rows={3}
+                    value={formValues.notes}
+                    onChange={handleFormChange}
+                    placeholder="Allergies, coat condition, or special requests."
+                  />
+                </div>
+
+                <div className="slot-picker">
+                  <div className="slot-picker-header">
+                    <h3>Choose a time</h3>
+                    <span>2-hour sessions · Friday 9–5 · Saturday 9–1</span>
+                  </div>
+                  {availabilityStatus === "loading" && (
+                    <p className="slot-message">Loading available times…</p>
+                  )}
+                  {availabilityStatus === "error" && (
+                    <p className="slot-message error">{availabilityError}</p>
+                  )}
+                  {availabilityStatus === "ready" && availability.length === 0 && (
+                    <p className="slot-message">No availability found. Please check back soon.</p>
+                  )}
+                  {availabilityStatus === "ready" && availability.length > 0 && (
+                    <div className="slot-grid">
+                      <div className="slot-day-picker">
+                        {availability.map((day) => (
+                          <button
+                            key={day.dateKey}
+                            type="button"
+                            className={`slot-button${
+                              selectedDayKey === day.dateKey ? " selected" : ""
+                            }`}
+                            onClick={() => handleDaySelect(day.dateKey)}
+                          >
+                            {day.dateLabel}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="slot-day">
+                        <span className="slot-date">{selectedDay?.dateLabel}</span>
+                        <div className="slot-times">
+                          {selectedDay?.slots.map((slot) => (
+                              <button
+                                key={slot.start}
+                                type="button"
+                                className={`slot-button${
+                                  selectedSlot?.start === slot.start ? " selected" : ""
+                                }`}
+                                onClick={() =>
+                                  setSelectedSlot({
+                                    ...slot,
+                                    dateLabel: selectedDay?.dateLabel || "",
+                                  })
+                                }
+                              >
+                                {slot.label}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {selectedSlot && (
+                    <p className="slot-selected">
+                      Selected: {selectedSlot.dateLabel} at {selectedSlot.label}
+                    </p>
+                  )}
+                </div>
+
+                <button
+                  type="submit"
+                  className="btn primary"
+                  disabled={bookingStatus.state === "loading"}
+                >
+                  {bookingStatus.state === "loading" ? "Booking…" : "Book Appointment"}
+                </button>
+                {bookingStatus.message && (
+                  <p className={`status-message ${bookingStatus.state}`}>
+                    {bookingStatus.message}
+                  </p>
+                )}
+              </form>
             </div>
           </div>
         </section>
@@ -501,13 +699,13 @@ export default function HomePage() {
               <div className="location">
                 <h3>Visit Us</h3>
                 <p>
-                  <FaMapMarkerAlt /> 42 Riverbank Road, Whanganui, New Zealand
+                  <FaMapMarkerAlt /> 6033 State Highway 12 Ohaeawai
                 </p>
               </div>
               <div className="map-wrapper">
                 <iframe
-                  title="Cut & Cuddle Location in Whanganui"
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d101383.83988387658!2d175.0137754!3d-39.925039299999996!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x6d4014ca7f818ef9%3A0x500ef6143a2f4d0!2sWhanganui!5e0!3m2!1sen!2snz!4v1709964582523"
+                  title="Cut & Cuddle Location in Ohaeawai"
+                  src="https://www.google.com/maps?q=6033+State+Highway+12,+Ohaeawai,+New+Zealand&output=embed"
                   loading="lazy"
                   allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"

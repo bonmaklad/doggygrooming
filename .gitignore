@@ -7,6 +7,15 @@ yarn-error.log*
 firebase-debug.log*
 firebase-debug.*.log*
 
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Next.js build output
+.next/
+out/
+
 # Firebase cache
 .firebase/
 
@@ -62,8 +71,13 @@ node_modules/
 # Yarn Integrity file
 .yarn-integrity
 
-# dotenv environment variables file
+# dotenv / secrets
 .env
+.env.local
+.env.*.local
+client_secret.json
+*.key
+*.pem
 
 # dataconnect generated files
 .dataconnect
