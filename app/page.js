@@ -2,12 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import galleryPhotoOne from "./images/5152210126990150542.jpg";
-import galleryPhotoTwo from "./images/5152210126990150543.jpg";
 import aboutPhoto from "./images/Media (1).jpeg";
-import galleryPhotoFour from "./images/Media (2).jpeg";
-import galleryPhotoFive from "./images/Media (3).jpeg";
-import galleryPhotoSix from "./images/Media (4).jpeg";
 import {
   FaPaw,
   FaLeaf,
@@ -90,32 +85,31 @@ const bookingDogSizes = [
   { value: "Large", label: "Large (21–35kg)" },
 ];
 
-const galleryImages = [
-  {
-    src: galleryPhotoOne,
-    alt: "Groomed dog portrait in the salon",
-  },
-  {
-    src: galleryPhotoTwo,
-    alt: "Happy pup after a fresh trim",
-  },
-  {
-    src: aboutPhoto,
-    alt: "Fluffy pup showing off a tidy coat",
-  },
-  {
-    src: galleryPhotoFour,
-    alt: "Dog freshly groomed and camera ready",
-  },
-  {
-    src: galleryPhotoFive,
-    alt: "Pup with a clean, soft finish",
-  },
-  {
-    src: galleryPhotoSix,
-    alt: "Groomed dog smiling for the gallery",
-  },
-];
+const beforeAfterImageContext = require.context(
+  "./images/beforeafter",
+  false,
+  /\.(avif|gif|jpe?g|png|webp)$/i
+);
+
+const galleryImages = beforeAfterImageContext
+  .keys()
+  .sort((a, b) => a.localeCompare(b))
+  .map((filePath) => {
+    const fileName = filePath.replace("./", "");
+    const readableName = fileName
+      .replace(/\.[^/.]+$/, "")
+      .replace(/[_-]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    return {
+      key: fileName,
+      src: beforeAfterImageContext(filePath),
+      alt: readableName
+        ? `Freshly groomed dog: ${readableName}`
+        : "Freshly groomed dog",
+    };
+  });
 
 const aboutHighlights = [
   { icon: FaBone, text: "Stress-free grooming suites" },
@@ -141,6 +135,8 @@ const navItems = [
 export default function HomePage() {
   const [navOpen, setNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
+  const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const [isGalleryPaused, setIsGalleryPaused] = useState(false);
   const [availability, setAvailability] = useState([]);
   const [availabilityStatus, setAvailabilityStatus] = useState("loading");
   const [availabilityError, setAvailabilityError] = useState("");
@@ -157,6 +153,17 @@ export default function HomePage() {
     dogName: "",
     notes: "",
   });
+  const visibleGallerySlides = 3;
+  const galleryVisibleCount = Math.max(
+    1,
+    Math.min(visibleGallerySlides, galleryImages.length)
+  );
+  const maxGalleryIndex = Math.max(0, galleryImages.length - galleryVisibleCount);
+  const galleryTranslateStep = 100 / galleryVisibleCount;
+  const gallerySlidePositions = Array.from(
+    { length: maxGalleryIndex + 1 },
+    (_, index) => index
+  );
 
   const fetchAvailability = useCallback(async () => {
     setAvailabilityStatus("loading");
@@ -233,6 +240,26 @@ export default function HomePage() {
   useEffect(() => {
     fetchAvailability();
   }, [fetchAvailability]);
+
+  useEffect(() => {
+    setActiveGalleryIndex((prev) => Math.min(prev, maxGalleryIndex));
+  }, [maxGalleryIndex]);
+
+  useEffect(() => {
+    if (maxGalleryIndex < 1 || isGalleryPaused) return;
+    if (
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setActiveGalleryIndex((prev) => (prev >= maxGalleryIndex ? 0 : prev + 1));
+    }, 2000);
+
+    return () => window.clearInterval(intervalId);
+  }, [isGalleryPaused, maxGalleryIndex]);
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
@@ -418,10 +445,30 @@ export default function HomePage() {
             <div className="about-content">
               <h2>Meet Cut &amp; Cuddle</h2>
               <p>
-                We are a KeriKeri-based grooming studio delivering calm, caring
-                experiences for every dog who walks through our doors. Our team
-                specializes in gentle handling, breed-specific styling, and creating
-                a spa day that feels like a hug.
+                Welcome to Cut &amp; Cuddle Dog Groomers, a professional dog
+                grooming service based near Kerikeri.
+              </p>
+              <p>
+                At Cut &amp; Cuddle, we are committed to delivering high-quality
+                grooming in a calm, safe, and caring environment. Every dog is
+                treated with patience, kindness, and respect, with grooming
+                services tailored to suit their individual needs, coat type, and
+                temperament.
+              </p>
+              <p>
+                Our priority is ensuring your dog feels comfortable and relaxed
+                throughout the grooming process while achieving reliable,
+                professional results. Whether your dog requires a simple tidy-up
+                or a complete full groom, you can be confident they will receive
+                attentive care from start to finish.
+              </p>
+              <p>
+                For added convenience, pick-up and drop-off services can be
+                arranged upon request, making it easier for busy owners to keep
+                their dogs well groomed. If you are seeking professional and
+                dependable dog grooming services in Kerikeri and the surrounding
+                areas, Cut &amp; Cuddle Dog Groomers would be delighted to care
+                for your dog.
               </p>
               <ul className="pill-list">
                 {aboutHighlights.map(({ icon: Icon, text }) => (
@@ -500,13 +547,54 @@ export default function HomePage() {
                 camera-ready.
               </p>
             </div>
-            <div className="gallery-grid">
-              {galleryImages.map((image) => (
-                <figure className="gallery-item observe" key={image.src}>
-                  <Image src={image.src} alt={image.alt} width={480} height={480} />
-                </figure>
-              ))}
-            </div>
+            {galleryImages.length ? (
+              <div
+                className="gallery-carousel observe"
+                onMouseEnter={() => setIsGalleryPaused(true)}
+                onMouseLeave={() => setIsGalleryPaused(false)}
+              >
+                <div className="gallery-viewport">
+                  <div
+                    className="gallery-track"
+                    style={{
+                      transform: `translateX(-${activeGalleryIndex * galleryTranslateStep}%)`,
+                      "--gallery-visible-count": galleryVisibleCount,
+                    }}
+                  >
+                    {galleryImages.map((image) => (
+                      <figure className="gallery-slide" key={image.key}>
+                        <div className="gallery-slide-frame">
+                          <Image
+                            src={image.src}
+                            alt={image.alt}
+                            fill
+                            sizes="(max-width: 980px) 100vw, 33vw"
+                          />
+                        </div>
+                      </figure>
+                    ))}
+                  </div>
+                </div>
+                {maxGalleryIndex > 0 && (
+                  <div className="gallery-dots" aria-label="Gallery slide selector">
+                    {gallerySlidePositions.map((index) => (
+                      <button
+                        type="button"
+                        className={`gallery-dot${index === activeGalleryIndex ? " active" : ""}`}
+                        key={`dot-${index}`}
+                        onClick={() => setActiveGalleryIndex(index)}
+                        aria-label={`Show slide ${index + 1}`}
+                        aria-current={index === activeGalleryIndex ? "true" : "false"}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <p className="gallery-empty">
+                Add photos to <code>app/images/beforeafter</code> to display your gallery.
+              </p>
+            )}
           </div>
         </section>
 
