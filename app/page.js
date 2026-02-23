@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
-import aboutPhoto from "./images/Media (1).jpeg";
+import heroPhoto from "./images/main.png";
+import aboutPhoto from "./images/20260122_142420(1)(1).jpg";
 import {
   FaPaw,
   FaLeaf,
@@ -417,7 +418,7 @@ export default function HomePage() {
             </div>
             <div className="hero-media observe">
               <Image
-                src="https://images.pexels.com/photos/3299908/pexels-photo-3299908.jpeg"
+                src={heroPhoto}
                 alt="Freshly groomed dog smiling at the camera"
                 width={640}
                 height={760}
