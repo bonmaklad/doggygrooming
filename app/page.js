@@ -890,8 +890,8 @@ export default function HomePage() {
       <footer className="site-footer">
         <div className="container footer-grid">
           <p>&copy; {currentYear} Cut &amp; Cuddle Grooming. All rights reserved.</p>
-          <a href="tel:+6465551234">
-            <FaPhone /> (06) 555 1234
+          <a href="tel:+64204464141">
+            <FaPhone /> (020) 4464141
           </a>
           <a href="mailto:cutandcuddle01@gmail.com">
             <FaEnvelope /> cutandcuddle01@gmail.com
