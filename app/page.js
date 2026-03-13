@@ -427,7 +427,7 @@ export default function HomePage() {
               />
               <div className="media-note">
                 <FaHeart />
-                KeriKeri Area on 021 934 841
+                KeriKeri Area on 020 446 4141
               </div>
             </div>
           </div>
@@ -842,7 +842,7 @@ export default function HomePage() {
                   </span>
                   <span>
                     <span className="contact-label">Phone</span>
-                    <span className="contact-value">021 934 841</span>
+                    <span className="contact-value">020 446 4141</span>
                   </span>
                 </a>
               </div>
