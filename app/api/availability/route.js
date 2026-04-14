@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { buildAvailabilitySlots } from "../../../lib/availability";
+import {
+  BOOKING_SCHEDULE,
+  BOOKING_SESSION_MINUTES,
+} from "../../../lib/bookingConfig";
 import { getCalendarClient, getCalendarConfig } from "../../../lib/googleCalendar";
-
-const SESSION_MINUTES = 120;
-const SCHEDULE = {
-  Friday: { start: "09:00", end: "17:00" },
-  Saturday: { start: "09:00", end: "13:00" },
-};
 
 export async function GET(request) {
   try {
@@ -30,15 +28,15 @@ export async function GET(request) {
     const slots = buildAvailabilitySlots({
       startDate,
       weeks,
-      sessionMinutes: SESSION_MINUTES,
-      schedule: SCHEDULE,
+      sessionMinutes: BOOKING_SESSION_MINUTES,
+      schedule: BOOKING_SCHEDULE,
       timeZone,
       busy,
     });
 
     return NextResponse.json({
       slots,
-      sessionMinutes: SESSION_MINUTES,
+      sessionMinutes: BOOKING_SESSION_MINUTES,
       timeZone,
     });
   } catch (error) {

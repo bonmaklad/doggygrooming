@@ -1,7 +1,12 @@
 'use client';
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
+import {
+  BOOKING_DAY_LABEL,
+  BOOKING_SLOT_SUMMARY,
+  BOOKING_TIME_LABEL,
+} from "../lib/bookingConfig";
 import heroPhoto from "./images/main.png";
 import aboutPhoto from "./images/20260122_142420(1)(1).jpg";
 import {
@@ -20,6 +25,8 @@ import {
   FaTiktok,
   FaMapMarkerAlt,
   FaHeart,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 
 const servicesOffered = [
@@ -119,7 +126,7 @@ const aboutHighlights = [
 ];
 
 const bookingHighlights = [
-  { icon: FaCalendarCheck, text: "Friday 9–5 & Saturday 9–1" },
+  { icon: FaCalendarCheck, text: `${BOOKING_DAY_LABEL} at ${BOOKING_TIME_LABEL}` },
   { icon: FaPaw, text: "2-hour grooming slots" },
   { icon: FaEnvelope, text: "Email confirmation" },
 ];
@@ -133,6 +140,76 @@ const navItems = [
   { label: "Contact", href: "#contact" },
 ];
 
+const CALENDAR_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const CALENDAR_TIME_ZONE = "Pacific/Auckland";
+
+const parseDateKey = (dateKey) => {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return { year, month, day };
+};
+
+const getMonthKey = (dateKey) => dateKey.slice(0, 7);
+
+const makeCalendarDate = (year, month, day) =>
+  new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+
+const formatCalendarMonth = (monthKey) => {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Intl.DateTimeFormat("en-NZ", {
+    month: "long",
+    year: "numeric",
+    timeZone: CALENDAR_TIME_ZONE,
+  }).format(makeCalendarDate(year, month, 1));
+};
+
+const buildCalendarMonths = (days) => {
+  if (!days.length) return [];
+
+  const first = parseDateKey(days[0].dateKey);
+  const last = parseDateKey(days[days.length - 1].dateKey);
+  const months = [];
+  let year = first.year;
+  let month = first.month;
+
+  while (year < last.year || (year === last.year && month <= last.month)) {
+    months.push(`${year}-${String(month).padStart(2, "0")}`);
+    month += 1;
+    if (month > 12) {
+      month = 1;
+      year += 1;
+    }
+  }
+
+  return months;
+};
+
+const buildCalendarDays = (monthKey, availabilityByDate) => {
+  if (!monthKey) return [];
+
+  const [year, month] = monthKey.split("-").map(Number);
+  const firstOfMonth = makeCalendarDate(year, month, 1);
+  const leadingBlanks = (firstOfMonth.getUTCDay() + 6) % 7;
+  const daysInMonth = new Date(Date.UTC(year, month, 0, 12, 0, 0)).getUTCDate();
+  const calendarDays = [];
+
+  for (let blank = 0; blank < leadingBlanks; blank += 1) {
+    calendarDays.push({ type: "blank", key: `blank-${monthKey}-${blank}` });
+  }
+
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const dateKey = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    calendarDays.push({
+      type: "day",
+      key: dateKey,
+      dateKey,
+      dayNumber: day,
+      isAvailable: Boolean(availabilityByDate[dateKey]),
+    });
+  }
+
+  return calendarDays;
+};
+
 export default function HomePage() {
   const [navOpen, setNavOpen] = useState(false);
   const [activeSection, setActiveSection] = useState("hero");
@@ -142,6 +219,7 @@ export default function HomePage() {
   const [availabilityStatus, setAvailabilityStatus] = useState("loading");
   const [availabilityError, setAvailabilityError] = useState("");
   const [selectedDayKey, setSelectedDayKey] = useState("");
+  const [visibleMonthKey, setVisibleMonthKey] = useState("");
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [bookingStatus, setBookingStatus] = useState({ state: "idle", message: "" });
   const [bookingErrors, setBookingErrors] = useState({});
@@ -154,6 +232,7 @@ export default function HomePage() {
     dogName: "",
     notes: "",
   });
+  const selectedDayKeyRef = useRef("");
   const visibleGallerySlides = 3;
   const galleryVisibleCount = Math.max(
     1,
@@ -175,11 +254,19 @@ export default function HomePage() {
       if (!response.ok) {
         throw new Error(data?.error || "Unable to load availability.");
       }
-      setAvailability(data.slots || []);
-      if (data.slots?.length) {
-        setSelectedDayKey((prev) =>
-          data.slots.some((day) => day.dateKey === prev) ? prev : data.slots[0].dateKey
-        );
+      const nextAvailability = data.slots || [];
+      setAvailability(nextAvailability);
+      if (nextAvailability.length) {
+        const nextSelectedDayKey = nextAvailability.some(
+          (day) => day.dateKey === selectedDayKeyRef.current
+        )
+          ? selectedDayKeyRef.current
+          : nextAvailability[0].dateKey;
+        setSelectedDayKey(nextSelectedDayKey);
+        setVisibleMonthKey(getMonthKey(nextSelectedDayKey));
+      } else {
+        setSelectedDayKey("");
+        setVisibleMonthKey("");
       }
       setAvailabilityStatus("ready");
     } catch (error) {
@@ -187,6 +274,10 @@ export default function HomePage() {
       setAvailabilityError(error?.message || "Unable to load availability.");
     }
   }, []);
+
+  useEffect(() => {
+    selectedDayKeyRef.current = selectedDayKey;
+  }, [selectedDayKey]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -351,6 +442,24 @@ export default function HomePage() {
 
   const selectedDay =
     availability.find((day) => day.dateKey === selectedDayKey) || availability[0];
+  const availabilityByDate = availability.reduce((acc, day) => {
+    acc[day.dateKey] = day;
+    return acc;
+  }, {});
+  const calendarMonths = buildCalendarMonths(availability);
+  const calendarDays = buildCalendarDays(visibleMonthKey, availabilityByDate);
+  const visibleMonthIndex = calendarMonths.indexOf(visibleMonthKey);
+  const visibleMonthLabel = visibleMonthKey ? formatCalendarMonth(visibleMonthKey) : "";
+
+  const handleMonthSelect = (monthKey) => {
+    if (!monthKey) return;
+    setVisibleMonthKey(monthKey);
+    const firstAvailableDay = availability.find((day) => getMonthKey(day.dateKey) === monthKey);
+    if (firstAvailableDay) {
+      setSelectedDayKey(firstAvailableDay.dateKey);
+      setSelectedSlot(null);
+    }
+  };
 
   const currentYear = new Date().getFullYear();
 
@@ -606,7 +715,8 @@ export default function HomePage() {
               <h2>Book Your Pup’s Spa Day</h2>
               <p>
                 Tell us about your pup, choose the service you need, and pick an open
-                Friday or Saturday slot. We’ll send your confirmation by email.
+                Monday to Thursday slot at 1pm or 3pm. We’ll send your confirmation
+                by email.
               </p>
               <ul className="pill-list">
                 {bookingHighlights.map(({ icon: Icon, text }) => (
@@ -730,8 +840,8 @@ export default function HomePage() {
 
                 <div className={`slot-picker${bookingErrors.slot ? " error" : ""}`}>
                   <div className="slot-picker-header">
-                    <h3>Choose a time</h3>
-                    <span>2-hour sessions · Friday 9–5 · Saturday 9–1</span>
+                    <h3>Choose a day and time</h3>
+                    <span>{BOOKING_SLOT_SUMMARY}</span>
                   </div>
                   {availabilityStatus === "loading" && (
                     <p className="slot-message">Loading available times…</p>
@@ -744,48 +854,116 @@ export default function HomePage() {
                   )}
                   {availabilityStatus === "ready" && availability.length > 0 && (
                     <div className="slot-grid">
-                      <div className="slot-day-picker">
-                        {availability.map((day) => (
-                          <button
-                            key={day.dateKey}
-                            type="button"
-                            className={`slot-button${
-                              selectedDayKey === day.dateKey ? " selected" : ""
-                            }`}
-                            onClick={() => handleDaySelect(day.dateKey)}
-                          >
-                            {day.dateLabel}
-                          </button>
-                        ))}
+                      <div className="slot-calendar">
+                        <div className="slot-step-header">
+                          <span className="slot-step-number">1</span>
+                          <div>
+                            <h4>Choose a day</h4>
+                            <p className="slot-helper">
+                              Available days are highlighted. Unavailable dates are blocked out.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="calendar-shell">
+                          <div className="calendar-toolbar">
+                            <button
+                              type="button"
+                              className="calendar-nav"
+                              onClick={() => handleMonthSelect(calendarMonths[visibleMonthIndex - 1])}
+                              disabled={visibleMonthIndex <= 0}
+                              aria-label="Show previous month"
+                            >
+                              <FaChevronLeft />
+                            </button>
+                            <span className="calendar-month">{visibleMonthLabel}</span>
+                            <button
+                              type="button"
+                              className="calendar-nav"
+                              onClick={() => handleMonthSelect(calendarMonths[visibleMonthIndex + 1])}
+                              disabled={visibleMonthIndex === -1 || visibleMonthIndex >= calendarMonths.length - 1}
+                              aria-label="Show next month"
+                            >
+                              <FaChevronRight />
+                            </button>
+                          </div>
+                          <div className="calendar-weekdays" aria-hidden="true">
+                            {CALENDAR_WEEKDAYS.map((weekday) => (
+                              <span key={weekday} className="calendar-weekday">
+                                {weekday}
+                              </span>
+                            ))}
+                          </div>
+                          <div className="calendar-days">
+                            {calendarDays.map((day) =>
+                              day.type === "blank" ? (
+                                <span
+                                  key={day.key}
+                                  className="calendar-day-spacer"
+                                  aria-hidden="true"
+                                />
+                              ) : (
+                                <button
+                                  key={day.key}
+                                  type="button"
+                                  className={`calendar-day${
+                                    day.isAvailable ? " available" : " unavailable"
+                                  }${selectedDayKey === day.dateKey ? " selected" : ""}`}
+                                  onClick={() => handleDaySelect(day.dateKey)}
+                                  disabled={!day.isAvailable}
+                                  aria-pressed={selectedDayKey === day.dateKey}
+                                >
+                                  <span className="calendar-day-number">{day.dayNumber}</span>
+                                </button>
+                              )
+                            )}
+                          </div>
+                        </div>
                       </div>
                       <div className="slot-day">
-                        <span className="slot-date">{selectedDay?.dateLabel}</span>
-                        <div className="slot-times">
-                          {selectedDay?.slots.map((slot) => (
-                              <button
-                                key={slot.start}
-                                type="button"
-                                className={`slot-button${
-                                  selectedSlot?.start === slot.start ? " selected" : ""
-                                }`}
-                                onClick={() => {
-                                  setSelectedSlot({
-                                    ...slot,
-                                    dateLabel: selectedDay?.dateLabel || "",
-                                  });
-                                  if (bookingErrors.slot) {
-                                    setBookingErrors((prev) => {
-                                      const nextErrors = { ...prev };
-                                      delete nextErrors.slot;
-                                      return nextErrors;
-                                    });
-                                  }
-                                }}
-                              >
-                                {slot.label}
-                              </button>
-                            ))}
+                        <div className="slot-step-header">
+                          <span className="slot-step-number">2</span>
+                          <div>
+                            <h4>Choose a time</h4>
+                            <p className="slot-helper">
+                              {selectedDay
+                                ? `Showing times for ${selectedDay.dateLabel}.`
+                                : "Select an available day to see time slots."}
+                            </p>
+                          </div>
                         </div>
+                        {selectedDay ? (
+                          <>
+                            <span className="slot-date">{selectedDay.dateLabel}</span>
+                            <div className="slot-times">
+                              {selectedDay.slots.map((slot) => (
+                                <button
+                                  key={slot.start}
+                                  type="button"
+                                  className={`slot-button${
+                                    selectedSlot?.start === slot.start ? " selected" : ""
+                                  }`}
+                                  onClick={() => {
+                                    setSelectedSlot({
+                                      ...slot,
+                                      dateLabel: selectedDay.dateLabel || "",
+                                    });
+                                    if (bookingErrors.slot) {
+                                      setBookingErrors((prev) => {
+                                        const nextErrors = { ...prev };
+                                        delete nextErrors.slot;
+                                        return nextErrors;
+                                      });
+                                    }
+                                  }}
+                                >
+                                  {slot.label}
+                                </button>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <p className="slot-message">No available day selected yet.</p>
+                        )}
                       </div>
                     </div>
                   )}
@@ -851,8 +1029,7 @@ export default function HomePage() {
               <div className="hours">
                 <h3>Hours</h3>
                 <ul>
-                  <li>Fri: 9:00am – 5:00pm</li>
-                  <li>Saturday: 9:00am – 1:00pm</li>
+                  <li>Monday–Thursday: 1:00pm &amp; 3:00pm</li>
                   {/* <li>Sunday: By appointment</li> */}
                 </ul>
               </div>

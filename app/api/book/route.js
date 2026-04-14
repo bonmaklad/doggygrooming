@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { isSlotWithinSchedule } from "../../../lib/availability";
+import {
+  BOOKING_SCHEDULE,
+  BOOKING_SESSION_MINUTES,
+} from "../../../lib/bookingConfig";
 import { getCalendarClient, getCalendarConfig } from "../../../lib/googleCalendar";
-
-const SESSION_MINUTES = 120;
-const SCHEDULE = {
-  Friday: { start: "09:00", end: "17:00" },
-  Saturday: { start: "09:00", end: "13:00" },
-};
 const ALLOWED_SERVICES = [
   "Wash & Blow Dry",
   "Basic Trim",
@@ -48,9 +46,9 @@ export async function POST(request) {
       !isSlotWithinSchedule({
         start,
         end,
-        schedule: SCHEDULE,
+        schedule: BOOKING_SCHEDULE,
         timeZone,
-        sessionMinutes: SESSION_MINUTES,
+        sessionMinutes: BOOKING_SESSION_MINUTES,
       })
     ) {
       return NextResponse.json(
