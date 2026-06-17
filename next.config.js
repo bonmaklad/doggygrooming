@@ -1,8 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: "export",
+  output: "standalone",
   images: {
-    // Disable Next.js image optimization when exporting static HTML
+    // Keep remote image rendering deterministic across deployment targets.
     unoptimized: true,
     remotePatterns: [
       {
