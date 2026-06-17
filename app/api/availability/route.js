@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { buildAvailabilitySlots } from "../../../lib/availability";
 import {
+  BOOKING_AVAILABILITY_WEEKS,
   BOOKING_SCHEDULE,
   BOOKING_SESSION_MINUTES,
 } from "../../../lib/bookingConfig";
@@ -11,7 +12,10 @@ export async function GET(request) {
     const { calendarId, timeZone } = getCalendarConfig();
     const calendar = getCalendarClient();
     const url = new URL(request.url);
-    const weeks = Math.min(Number(url.searchParams.get("weeks") || 6), 12);
+    const requestedWeeks = Number(
+      url.searchParams.get("weeks") || BOOKING_AVAILABILITY_WEEKS
+    );
+    const weeks = Math.min(requestedWeeks, BOOKING_AVAILABILITY_WEEKS);
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
 

@@ -556,8 +556,10 @@ textarea[aria-invalid="true"] {
 }
 
 .gallery-track {
-  --gallery-visible-count: 3;
+  --gallery-desktop-visible-count: 3;
+  --gallery-visible-count: var(--gallery-desktop-visible-count);
   display: flex;
+  align-items: flex-start;
   transition: transform 0.6s ease;
   will-change: transform;
 }
@@ -1082,6 +1084,15 @@ textarea[aria-invalid="true"] {
 
   .service-prices {
     justify-content: center;
+  }
+
+  .gallery-track {
+    --gallery-visible-count: 1;
+  }
+
+  .gallery-slide {
+    height: clamp(516px, 150vw, 720px);
+    padding: 0;
   }
 }
 

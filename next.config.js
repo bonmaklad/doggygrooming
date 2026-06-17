@@ -1,7 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Build a standalone server bundle for deployment
-  output: "standalone",
+  output: "export",
   images: {
     // Disable Next.js image optimization when exporting static HTML
     unoptimized: true,

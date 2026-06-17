@@ -142,6 +142,9 @@ const navItems = [
 
 const CALENDAR_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const CALENDAR_TIME_ZONE = "Pacific/Auckland";
+const DESKTOP_GALLERY_SLIDES = 3;
+const MOBILE_GALLERY_SLIDES = 1;
+const GALLERY_SINGLE_SLIDE_QUERY = "(max-width: 768px)";
 
 const parseDateKey = (dateKey) => {
   const [year, month, day] = dateKey.split("-").map(Number);
@@ -223,6 +226,7 @@ export default function HomePage() {
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [bookingStatus, setBookingStatus] = useState({ state: "idle", message: "" });
   const [bookingErrors, setBookingErrors] = useState({});
+  const [visibleGallerySlides, setVisibleGallerySlides] = useState(DESKTOP_GALLERY_SLIDES);
   const [formValues, setFormValues] = useState({
     service: bookingServices[0].value,
     dogSize: bookingDogSizes[0].value,
@@ -233,7 +237,6 @@ export default function HomePage() {
     notes: "",
   });
   const selectedDayKeyRef = useRef("");
-  const visibleGallerySlides = 3;
   const galleryVisibleCount = Math.max(
     1,
     Math.min(visibleGallerySlides, galleryImages.length)
@@ -332,6 +335,21 @@ export default function HomePage() {
   useEffect(() => {
     fetchAvailability();
   }, [fetchAvailability]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const mediaQuery = window.matchMedia(GALLERY_SINGLE_SLIDE_QUERY);
+    const updateVisibleSlides = () => {
+      setVisibleGallerySlides(
+        mediaQuery.matches ? MOBILE_GALLERY_SLIDES : DESKTOP_GALLERY_SLIDES
+      );
+    };
+
+    updateVisibleSlides();
+    mediaQuery.addEventListener("change", updateVisibleSlides);
+
+    return () => mediaQuery.removeEventListener("change", updateVisibleSlides);
+  }, []);
 
   useEffect(() => {
     setActiveGalleryIndex((prev) => Math.min(prev, maxGalleryIndex));
@@ -668,7 +686,7 @@ export default function HomePage() {
                     className="gallery-track"
                     style={{
                       transform: `translateX(-${activeGalleryIndex * galleryTranslateStep}%)`,
-                      "--gallery-visible-count": galleryVisibleCount,
+                      "--gallery-desktop-visible-count": galleryVisibleCount,
                     }}
                   >
                     {galleryImages.map((image) => (
@@ -678,7 +696,7 @@ export default function HomePage() {
                             src={image.src}
                             alt={image.alt}
                             fill
-                            sizes="(max-width: 980px) 100vw, 33vw"
+                            sizes="(max-width: 768px) 100vw, 33vw"
                           />
                         </div>
                       </figure>
