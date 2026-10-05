@@ -591,9 +591,7 @@ export default function HomePage() {
                 attentive care from start to finish.
               </p>
               <p>
-                For added convenience, pick-up and drop-off services can be
-                arranged upon request, making it easier for busy owners to keep
-                their dogs well groomed. If you are seeking professional and
+                If you are seeking professional and
                 dependable dog grooming services in Kerikeri and the surrounding
                 areas, Cut &amp; Cuddle Dog Groomers would be delighted to care
                 for your dog.

@@ -5,13 +5,11 @@ const pricingMatrix = {
   xl: { basic: 85, full: 110, show: 140 },
 };
 
-const pickupFee = 15;
 const storageKey = "cutAndCuddlePricing";
 
 const priceForm = document.querySelector("#price-form");
 const sizeSelect = document.querySelector("#dog-size");
 const styleSelect = document.querySelector("#style");
-const pickupToggle = document.querySelector("#pickup-toggle");
 const priceOutput = document.querySelector("#price-output");
 const yearEl = document.querySelector("#year");
 const navToggle = document.querySelector(".nav-toggle");
@@ -24,9 +22,9 @@ function calculatePrice() {
   const size = sizeSelect.value;
   const style = styleSelect.value;
   const basePrice = pricingMatrix[size][style];
-  const total = basePrice + (pickupToggle.checked ? pickupFee : 0);
+  const total = basePrice;
   priceOutput.textContent = `$${total}`;
-  return { size, style, pickup: pickupToggle.checked, total };
+  return { size, style, total };
 }
 
 function loadPreferences() {
@@ -39,7 +37,7 @@ function loadPreferences() {
     const prefs = JSON.parse(saved);
     if (prefs.size) sizeSelect.value = prefs.size;
     if (prefs.style) styleSelect.value = prefs.style;
-    if (typeof prefs.pickup === "boolean") pickupToggle.checked = prefs.pickup;
+    window.localStorage.setItem(storageKey, JSON.stringify(calculatePrice()));
   } catch (error) {
     console.warn("Unable to load preferences from localStorage.", error);
   } finally {
@@ -125,7 +123,7 @@ function initReveal() {
 function init() {
   loadPreferences();
 
-  [sizeSelect, styleSelect, pickupToggle].forEach((field) => {
+  [sizeSelect, styleSelect].forEach((field) => {
     field.addEventListener("change", calculatePrice);
   });
 
