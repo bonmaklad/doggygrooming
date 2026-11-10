@@ -730,9 +730,15 @@ export default function HomePage() {
               <span className="tagline">Plan your visit</span>
               <h2>Book Your Pup’s Spa Day</h2>
               <p>
-                Tell us about your pup, choose the service you need, and pick an open
-                Monday to Thursday slot at 1pm or 3pm. We’ll send your confirmation
-                by email.
+                {availabilityStatus === "error" ? (
+                  "Give us a ring to book your pup’s next groom. We’ll help you find a time that suits."
+                ) : (
+                  <>
+                    Tell us about your pup, choose the service you need, and pick an open
+                    Monday to Thursday slot at 1pm or 3pm. We’ll send your confirmation
+                    by email.
+                  </>
+                )}
               </p>
               <ul className="pill-list">
                 {bookingHighlights.map(({ icon: Icon, text }) => (
@@ -742,7 +748,19 @@ export default function HomePage() {
                 ))}
               </ul>
             </div>
-            <div className="booking-form-card">
+            {availabilityStatus === "error" && (
+              <div className="booking-form-card booking-call-card" role="status">
+                <span className="booking-call-icon" aria-hidden="true">
+                  <FaPhone />
+                </span>
+                <h3>Ring for bookings</h3>
+                <p>We’d love to get your pup booked in. Give us a call.</p>
+                <a className="booking-call-number" href="tel:+64204464141">
+                  020 446 4141
+                </a>
+              </div>
+            )}
+            <div className="booking-form-card" hidden={availabilityStatus === "error"}>
               <form onSubmit={handleBookingSubmit} noValidate>
                 <div className="form-grid">
                   <div className="form-group">
