@@ -18,6 +18,69 @@ test("a configured public origin is authoritative behind a proxy", () => {
   assert.equal(isSameOrigin(request, "https://different.example"), false);
 });
 
+test("HTTPS admin requests work when Cloudflare forwards to an HTTP server", () => {
+  const request = {
+    url: "http://internal:3000/api/admin/session",
+    headers: new Headers({
+      host: "cutandcuddle.co.nz",
+      origin: "https://cutandcuddle.co.nz",
+      "x-forwarded-proto": "https",
+    }),
+  };
+  assert.equal(isSameOrigin(request, ""), true);
+  request.headers.set("origin", "http://cutandcuddle.co.nz");
+  assert.equal(isSameOrigin(request, ""), false);
+});
+
+test("forwarded HTTPS never permits a different origin host or port", () => {
+  const request = {
+    url: "http://internal:3000/api/admin/session",
+    headers: new Headers({
+      host: "cutandcuddle.co.nz",
+      origin: "https://attacker.example",
+      "x-forwarded-proto": "https",
+      "x-forwarded-host": "attacker.example",
+    }),
+  };
+  assert.equal(isSameOrigin(request, ""), false);
+  request.headers.set("origin", "https://cutandcuddle.co.nz:444");
+  assert.equal(isSameOrigin(request, ""), false);
+});
+
+test("invalid or ambiguous forwarded protocols fail closed", () => {
+  const request = {
+    url: "https://cutandcuddle.co.nz/api/admin/session",
+    headers: new Headers({ host: "cutandcuddle.co.nz", origin: "https://cutandcuddle.co.nz" }),
+  };
+  for (const protocol of ["ftp", "https,http", "https, http", ""]) {
+    request.headers.set("x-forwarded-proto", protocol);
+    assert.equal(isSameOrigin(request, ""), false);
+  }
+});
+
+test("configured origins tolerate a trailing slash and whitespace but stay authoritative", () => {
+  const request = {
+    url: "http://internal:3000/api/admin/session",
+    headers: new Headers({ host: "internal:3000", origin: "https://cutandcuddle.co.nz" }),
+  };
+  assert.equal(isSameOrigin(request, " https://cutandcuddle.co.nz/ "), true);
+  for (const configured of ["https://different.example/", "https://cutandcuddle.co.nz/admin", "https://user@cutandcuddle.co.nz", "invalid"]) {
+    assert.equal(isSameOrigin(request, configured), false);
+  }
+});
+
+test("malformed or missing Origin headers cannot pass the check", () => {
+  const request = {
+    url: "https://cutandcuddle.co.nz/api/admin/session",
+    headers: new Headers({ host: "cutandcuddle.co.nz" }),
+  };
+  assert.equal(isSameOrigin(request, ""), false);
+  for (const origin of ["null", "https://cutandcuddle.co.nz.attacker.example", "https://cutandcuddle.co.nz/admin", "https://attacker@cutandcuddle.co.nz", "file:///etc/passwd"]) {
+    request.headers.set("origin", origin);
+    assert.equal(isSameOrigin(request, ""), false);
+  }
+});
+
 test("password is required and compared safely", () => {
   assert.equal(passwordMatches("secret", "secret"), true);
   assert.equal(passwordMatches("wrong", "secret"), false);
