@@ -73,6 +73,8 @@ node_modules/
 
 # dotenv / secrets
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 client_secret.json

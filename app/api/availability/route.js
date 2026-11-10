@@ -6,6 +6,9 @@ import {
   BOOKING_SESSION_MINUTES,
 } from "../../../lib/bookingConfig";
 import { getCalendarClient, getCalendarConfig } from "../../../lib/googleCalendar";
+import { requireFreeCalendar } from "../../../lib/bookingService";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(request) {
   try {
@@ -15,6 +18,9 @@ export async function GET(request) {
     const requestedWeeks = Number(
       url.searchParams.get("weeks") || BOOKING_AVAILABILITY_WEEKS
     );
+    if (!Number.isInteger(requestedWeeks) || requestedWeeks < 1) {
+      return NextResponse.json({ error: "Invalid availability range." }, { status: 400 });
+    }
     const weeks = Math.min(requestedWeeks, BOOKING_AVAILABILITY_WEEKS);
     const startDate = new Date();
     const endDate = new Date(startDate.getTime() + weeks * 7 * 24 * 60 * 60 * 1000);
@@ -28,7 +34,7 @@ export async function GET(request) {
       },
     });
 
-    const busy = response.data.calendars?.[calendarId]?.busy || [];
+    const busy = requireFreeCalendar(response.data, calendarId);
     const slots = buildAvailabilitySlots({
       startDate,
       weeks,
@@ -44,7 +50,6 @@ export async function GET(request) {
       timeZone,
     });
   } catch (error) {
-    const message = error?.message || "Unable to load availability.";
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: "Unable to load availability. Please try again or contact us." }, { status: 503 });
   }
 }

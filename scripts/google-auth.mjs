@@ -7,7 +7,10 @@ const defaultSecretPath = path.join(process.cwd(), "client_secret.json");
 const secretPath = process.argv[2] || defaultSecretPath;
 const redirectUri =
   process.env.GOOGLE_REDIRECT_URI || "http://localhost:3000/oauth2callback";
-const scopes = ["https://www.googleapis.com/auth/calendar"];
+const scopes = [
+  "https://www.googleapis.com/auth/calendar",
+  "https://www.googleapis.com/auth/contacts.readonly",
+];
 
 const loadClientConfig = async () => {
   const raw = await fs.readFile(secretPath, "utf8");
@@ -59,9 +62,27 @@ const main = async () => {
     );
   }
 
-  console.log("");
-  console.log("Refresh token:");
-  console.log(tokens.refresh_token || "");
+  if (tokens.refresh_token) {
+    const envPath = path.join(process.cwd(), ".env");
+    let env = await fs.readFile(envPath, "utf8").catch((error) => {
+      if (error.code === "ENOENT") return "";
+      throw error;
+    });
+    const updates = {
+      GOOGLE_CLIENT_ID: config.client_id,
+      GOOGLE_CLIENT_SECRET: config.client_secret,
+      GOOGLE_REFRESH_TOKEN: tokens.refresh_token,
+      GOOGLE_REDIRECT_URI: redirectUri,
+    };
+    for (const [key, value] of Object.entries(updates)) {
+      const line = `${key}=${JSON.stringify(value)}`;
+      const expression = new RegExp(`^${key}=.*$`, "m");
+      env = expression.test(env) ? env.replace(expression, () => line) : `${env.trimEnd()}\n${line}\n`;
+    }
+    await fs.writeFile(envPath, env.trimStart(), { mode: 0o600 });
+    await fs.chmod(envPath, 0o600);
+    console.log("Google credentials saved to .env. Restart the app to use them.");
+  }
 };
 
 main().catch((error) => {
