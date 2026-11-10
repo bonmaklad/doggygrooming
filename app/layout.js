@@ -7,7 +7,7 @@ const poppins = Poppins({
   variable: "--font-heading",
   display: "swap",
 });
-
+ 
 const quicksand = Quicksand({
   subsets: ["latin"],
   weight: ["400", "600"],
