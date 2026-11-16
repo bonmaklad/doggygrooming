@@ -12,7 +12,7 @@ export default function RebookDialog({ customer, dog, onClose, onBooked }) {
   const [form, setForm] = useState({
     name: customer.name, email: customer.emails[0] || "", phone: customer.phones[0] || "",
     dogName: dog?.name || "", dogSize: dog?.size || "", service: initialService,
-    notes: dog?.notes || "", quotedPrice: last?.quotedPrice ?? last?.amountPaid ?? SERVICE_PRICES[initialService]?.[dog?.size] ?? "",
+    notes: dog?.notes || "", quotedPrice: customer.groomPrice ?? last?.quotedPrice ?? last?.amountPaid ?? SERVICE_PRICES[initialService]?.[dog?.size] ?? "",
   });
   const [requestId] = useState(() => crypto.randomUUID());
   const [days, setDays] = useState([]);
@@ -50,14 +50,14 @@ export default function RebookDialog({ customer, dog, onClose, onBooked }) {
   }, [month]);
   const update = (key, value) => setForm((current) => {
     const next = { ...current, [key]: value };
-    if (key === "service" || key === "dogSize") next.quotedPrice = SERVICE_PRICES[next.service]?.[next.dogSize] ?? "";
+    if (key === "service" || key === "dogSize") next.quotedPrice = customer.groomPrice ?? SERVICE_PRICES[next.service]?.[next.dogSize] ?? "";
     return next;
   });
   const chooseDog = (id) => {
     setDogId(id);
     const selected = customer.dogs.find((item) => item.id === id);
     const previous = selected?.lastBooking || selected?.nextBooking;
-    setForm((current) => ({ ...current, dogName: selected?.name || "", dogSize: selected?.size || "", service: selected?.service || "", notes: selected?.notes || "", quotedPrice: previous?.quotedPrice ?? previous?.amountPaid ?? SERVICE_PRICES[selected?.service]?.[selected?.size] ?? "" }));
+    setForm((current) => ({ ...current, dogName: selected?.name || "", dogSize: selected?.size || "", service: selected?.service || "", notes: selected?.notes || "", quotedPrice: customer.groomPrice ?? previous?.quotedPrice ?? previous?.amountPaid ?? SERVICE_PRICES[selected?.service]?.[selected?.size] ?? "" }));
   };
   const submit = async (event) => {
     event.preventDefault(); setError("");
@@ -78,7 +78,7 @@ export default function RebookDialog({ customer, dog, onClose, onBooked }) {
     <form className="crm-form" onSubmit={submit}><fieldset disabled={busy}>
       {customer.dogs.length > 1 && <label>Which dog?<select value={dogId} onChange={(event) => chooseDog(event.target.value)}><option value="">Another dog / enter details</option>{customer.dogs.map((item) => <option key={item.id} value={item.id}>{item.name || "Unnamed dog"} · {item.size || "Size needed"}</option>)}</select></label>}
       <div className="crm-form-grid"><label>Owner’s name<input required maxLength={120} value={form.name} onChange={(event) => update("name", event.target.value)} autoComplete="name" /></label><label>Dog’s name<input required maxLength={120} value={form.dogName} onChange={(event) => update("dogName", event.target.value)} /></label><label>Email for confirmation<input required type="email" maxLength={254} value={form.email} onChange={(event) => update("email", event.target.value)} autoComplete="email" /></label><label>Phone<input type="tel" maxLength={50} value={form.phone} onChange={(event) => update("phone", event.target.value)} autoComplete="tel" /></label><label>Dog size<select required value={form.dogSize} onChange={(event) => update("dogSize", event.target.value)}><option value="">Choose size</option>{DOG_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}</select></label><label>Service<select required value={form.service} onChange={(event) => update("service", event.target.value)}><option value="">Choose service</option>{Object.keys(SERVICE_PRICES).map((service) => <option key={service}>{service}</option>)}</select></label></div>
-      <label>Quoted price (NZD)<input required type="number" min="0" max="10000" step="0.01" value={form.quotedPrice} onChange={(event) => update("quotedPrice", event.target.value)} /><small>A quote for this booking. Record the amount paid after the visit.</small></label>
+      <label>Quoted price (NZD)<input required type="number" min="0" max="10000" step="0.01" value={form.quotedPrice} onChange={(event) => update("quotedPrice", event.target.value)} /><small>{customer.groomPrice != null ? "Prefilled with the customer’s saved price; you can adjust this booking’s quote. " : "A quote for this booking. "}Record the amount paid after the visit.</small></label>
       <label>Notes for this appointment<textarea rows={3} maxLength={2000} value={form.notes} onChange={(event) => update("notes", event.target.value)} /></label>
       <div className="crm-booking-calendar"><h3><FaCalendarAlt />Choose a free slot</h3><p>{BOOKING_SLOT_SUMMARY} · {timeZone}</p>
         {availabilityLoading ? <p role="status">Checking the calendar…</p> : availabilityError ? <div role="alert" className="crm-error"><p>{availabilityError}</p><button type="button" className="crm-button crm-secondary crm-small" onClick={loadAvailability}>Try again</button></div> : !days.length ? <p>No free slots are available in the next 13 weeks. Please check Google Calendar.</p> : <>

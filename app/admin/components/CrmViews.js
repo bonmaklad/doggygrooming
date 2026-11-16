@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { FaArrowRight, FaCalendarAlt, FaCheck, FaClock, FaEnvelope, FaPaw, FaPhone, FaSearch, FaUsers } from "react-icons/fa";
-import { localDateKey } from "../../../lib/crm";
+import { followUpRows, localDateKey } from "../../../lib/crm";
 import { useCrm } from "./CrmProvider";
 import { formatDate, formatMoney, formatTime, initials, monthsSince } from "./format";
 
@@ -32,7 +32,7 @@ export function DueView() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("needs-rebooking");
   const [month, setMonth] = useState("");
-  const rows = useMemo(() => data.customers.flatMap((customer) => customer.dogs.map((dog) => ({ customer, dog }))).sort((a, b) => (a.dog.dueDate || "9999").localeCompare(b.dog.dueDate || "9999") || a.customer.name.localeCompare(b.customer.name)), [data]);
+  const rows = useMemo(() => followUpRows(data.customers), [data]);
   const counts = { overdue: rows.filter(({ dog }) => dog.status === "overdue").length, "this-month": rows.filter(({ dog }) => dog.status === "this-month").length, booked: rows.filter(({ dog }) => dog.status === "booked").length, "needs-details": rows.filter(({ dog }) => dog.status === "needs-details").length };
   const visible = rows.filter(({ customer, dog }) => {
     const statusMatches = filter === "all" || (filter === "needs-rebooking" ? ["overdue", "this-month"].includes(dog.status) : dog.status === filter);
@@ -55,7 +55,7 @@ export function DueView() {
         <div className="crm-due-cell"><StatusBadge status={dog.status} /><strong>{dog.status === "booked" ? formatDate(dog.nextBooking.start, data.timeZone) : dog.dueDate ? formatDate(dog.dueDate, data.timeZone) : "Add the missing details"}</strong><span>{monthsSince(dog.lastBooking ? localDateKey(dog.lastBooking.start, data.timeZone) : null, data.today)}</span></div>
         <button className={`crm-button ${dog.status === "booked" ? "crm-secondary" : ""} crm-small`} onClick={() => dog.status === "booked" ? openCustomer(customer) : rebook(customer, dog)}>{dog.status === "booked" ? "View booking" : "Rebook"}<FaArrowRight /></button>
       </article>)}</div> : <EmptyState title={rows.length ? "All clear here." : "Your follow-ups will appear here."}>{rows.length ? "No dogs match this view. Try another filter or month." : "Once Google has past bookings with a dog name, we’ll show the next groom due eight weeks later."}</EmptyState>}
-    </section><p className="crm-help">Due dates use the last past booking, excluding recorded no-shows. A future booking for that dog takes it out of the follow-up queue.</p>
+    </section><p className="crm-help">Due dates use the last past booking, excluding recorded no-shows. A future booking for that dog takes it out of the follow-up queue. Inactive customers are hidden here; manage their status in All clients.</p>
   </>;
 }
 
@@ -64,14 +64,14 @@ export function ClientsView() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("name");
-  const visible = data.customers.filter((customer) => matches(customer, query) && (filter === "all" || filter === "past" && customer.pastBookings > 0 || filter === "contacts" && !customer.history.length)).sort((a, b) => sort === "visits" ? b.pastBookings - a.pastBookings : sort === "last" ? Date.parse(b.lastBooking?.start || "1970-01-01") - Date.parse(a.lastBooking?.start || "1970-01-01") : a.name.localeCompare(b.name));
+  const visible = data.customers.filter((customer) => matches(customer, query) && (filter === "all" || filter === "active" && customer.active !== false || filter === "inactive" && customer.active === false || filter === "past" && customer.pastBookings > 0 || filter === "contacts" && !customer.history.length)).sort((a, b) => sort === "visits" ? b.pastBookings - a.pastBookings : sort === "last" ? Date.parse(b.lastBooking?.start || "1970-01-01") - Date.parse(a.lastBooking?.start || "1970-01-01") : a.name.localeCompare(b.name));
   return <>
     <PageHeading eyebrow="FAMILIAR FACES, HAPPY PAWS" title="Your little client book.">Contacts, dogs and every recorded appointment, together in one place.</PageHeading>
     <div className="crm-client-summary"><FaUsers /><strong>{data.customers.length} clients</strong><span>{data.customers.filter((customer) => customer.fromContacts).length} linked to Google Contacts</span><span>{data.customers.reduce((total, customer) => total + customer.pastBookings, 0)} past bookings</span></div>
     <section className="crm-panel"><div className="crm-panel-title"><h2>All clients</h2><span className="crm-count">{visible.length} shown</span></div>
-      <div className="crm-toolbar"><SearchField value={query} onChange={setQuery} /><label className="crm-filter-select"><span className="crm-sr-only">Client filter</span><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All clients</option><option value="past">With past bookings</option><option value="contacts">Contacts without bookings</option></select></label><label className="crm-filter-select"><span className="crm-sr-only">Sort clients</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="name">Name A–Z</option><option value="last">Most recent visit</option><option value="visits">Most past bookings</option></select></label></div>
+      <div className="crm-toolbar"><SearchField value={query} onChange={setQuery} /><label className="crm-filter-select"><span className="crm-sr-only">Client filter</span><select value={filter} onChange={(event) => setFilter(event.target.value)}><option value="all">All clients</option><option value="active">Active clients</option><option value="inactive">Inactive clients</option><option value="past">With past bookings</option><option value="contacts">Contacts without bookings</option></select></label><label className="crm-filter-select"><span className="crm-sr-only">Sort clients</span><select value={sort} onChange={(event) => setSort(event.target.value)}><option value="name">Name A–Z</option><option value="last">Most recent visit</option><option value="visits">Most past bookings</option></select></label></div>
       {visible.length ? <div className="crm-table-wrap"><table className="crm-table"><thead><tr><th>Client & contact</th><th>Dogs</th><th>Past bookings</th><th>Last groom</th><th>Recorded payments</th><th><span className="crm-sr-only">Actions</span></th></tr></thead><tbody>{visible.map((customer) => <tr key={customer.id}>
-        <td><div className="crm-owner-cell"><span className="crm-owner-avatar" aria-hidden="true">{initials(customer.name)}</span><div><button className="crm-name-button" onClick={() => openCustomer(customer)}>{customer.name}</button><ContactLinks customer={customer} /></div></div></td>
+        <td><div className="crm-owner-cell"><span className="crm-owner-avatar" aria-hidden="true">{initials(customer.name)}</span><div><button className="crm-name-button" onClick={() => openCustomer(customer)}>{customer.name}</button>{customer.active === false && <span className="crm-badge crm-client-inactive">Inactive</span>}<ContactLinks customer={customer} /></div></div></td>
         <td>{customer.dogs.length ? customer.dogs.map((dog) => <div key={dog.id} className="crm-table-dog"><FaPaw /><span>{dog.name || "Unnamed dog"}<small>{dog.size || "Size needed"}</small></span></div>) : <span className="crm-muted">No dog recorded</span>}</td>
         <td><strong>{customer.pastBookings}</strong><small className="crm-block">{customer.confirmedVisits} confirmed attended</small></td><td>{formatDate(customer.lastBooking?.start, data.timeZone)}</td>
         <td>{customer.paidBookingCount ? <><strong>{formatMoney(customer.totalPaid)}</strong><small className="crm-block">{customer.paidBookingCount} payment{customer.paidBookingCount === 1 ? "" : "s"} recorded</small></> : <span className="crm-muted">Not recorded</span>}</td>

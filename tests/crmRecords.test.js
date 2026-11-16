@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { createCrmStore, decodeRecords, encodeRecord, STORE_HEADERS } from "../lib/crmStore.js";
-import { contactChanges, saveClient, saveDog, visitDetails } from "../lib/crmRecords.js";
-import { buildCrm } from "../lib/crm.js";
+import { contactChanges, saveClient, saveClientPricing, saveClientStatus, saveDog, visitDetails } from "../lib/crmRecords.js";
+import { buildCrm, followUpRows } from "../lib/crm.js";
 
 const memoryStore = () => {
   const cells = Object.fromEntries(Object.entries(STORE_HEADERS).map(([tab, headers]) => [tab, [[...headers]]]));
@@ -126,4 +126,97 @@ test("stale Google contact edits are rejected before any Sheet changes", async (
   const customer = { id: "people/1", name: "Alex", emails: ["old@example.com"], phones: [], contactResourceName: "people/1" };
   await assert.rejects(saveClient({ payload: { ...payload(), name: "Alex New", email: "new@example.com", phone: "", contactVersion: "old" }, customer, store, people: { people: { get: async () => ({ data: { etag: "new" } }) } } }), { status: 409 });
   assert.equal((await store.read("Clients")).length, 0);
+});
+
+test("existing blank client statuses default to active and invalid status values fail closed", () => {
+  const legacy = encodeRecord("Clients", { id: "a", revision: "r", updatedAt: now.toISOString() }).slice(0, 12);
+  assert.equal(decodeRecords("Clients", [STORE_HEADERS.Clients, legacy])[0].status, "active");
+  assert.equal(decodeRecords("Clients", [STORE_HEADERS.Clients, legacy])[0].groomPrice, null);
+  assert.throws(() => decodeRecords("Clients", [STORE_HEADERS.Clients, [...legacy, "off"]]), /Invalid client status/);
+});
+
+test("turning a client off and on persists, hides all their dogs, and retains history and payments", async () => {
+  const { store, cells } = memoryStore();
+  const events = [
+    { ...booking, extendedProperties: { private: { ccAmountPaid: "90" } } },
+    { ...booking, id: "second-dog", extendedProperties: { private: { ccDogName: "Milo" } } },
+    { ...booking, id: "future", start: { dateTime: "2026-12-01T00:00:00Z" }, end: { dateTime: "2026-12-01T02:00:00Z" } },
+  ];
+  const model = async () => buildCrm({ now, events, ...await store.readAll() });
+  const initial = (await model()).customers[0];
+  const off = { ...payload(), active: false };
+  await saveClientStatus({ payload: off, customer: initial, store });
+  await saveClientStatus({ payload: off, customer: initial, store });
+  assert.equal(cells.Clients.length, 2, "retry does not duplicate a status revision");
+  const inactiveCrm = await model();
+  const inactive = inactiveCrm.customers[0];
+  assert.equal(inactive.active, false);
+  assert.equal(followUpRows(inactiveCrm.customers).length, 0);
+  assert.equal(inactive.dogs.length, 2);
+  assert.equal(inactive.totalPaid, 90);
+  assert.equal(inactive.history.length, 3);
+  assert.equal(inactive.upcoming.length, 1);
+  assert.deepEqual(inactive.emails, initial.emails);
+  await assert.rejects(saveClientStatus({ payload: { ...off, active: true }, customer: inactive, store }), { status: 409 });
+  await assert.rejects(saveClientStatus({ payload: { ...payload(), active: true }, customer: inactive, store }), { status: 409 });
+  await saveClientStatus({ payload: { ...payload(), recordRevision: inactive.recordRevision, active: true }, customer: inactive, store });
+  const reactivated = await model();
+  assert.equal(reactivated.customers[0].active, true);
+  assert.equal(followUpRows(reactivated.customers).length, 2);
+  assert.deepEqual(reactivated.customers[0].dogs.map((dog) => dog.dueDate), initial.dogs.map((dog) => dog.dueDate));
+  assert.equal(reactivated.customers[0].totalPaid, 90);
+});
+
+test("status changes need no contact details and reject non-boolean values", async () => {
+  const { store } = memoryStore();
+  const customer = { id: "people/empty", name: "Old customer", emails: [], phones: [], dogs: [] };
+  for (const active of ["false", null, undefined, 0]) {
+    await assert.rejects(saveClientStatus({ payload: { ...payload(), active }, customer, store }), { status: 400 });
+  }
+  await saveClientStatus({ payload: { ...payload(), active: false }, customer, store });
+  assert.equal(buildCrm({ ...await store.readAll(), now }).customers[0].active, false);
+});
+
+test("contact edits and a later calendar booking do not reactivate an inactive client", async () => {
+  const { store } = memoryStore();
+  let customer = buildCrm({ events: [booking], now }).customers[0];
+  await saveClientStatus({ payload: { ...payload(), active: false }, customer, store });
+  customer = buildCrm({ events: [booking], ...await store.readAll(), now }).customers[0];
+  await saveClientPricing({ payload: { ...payload(), recordRevision: customer.recordRevision, groomPrice: "75.50" }, customer, store });
+  customer = buildCrm({ events: [booking], ...await store.readAll(), now }).customers[0];
+  await saveClient({ payload: { ...payload(), recordRevision: customer.recordRevision, name: "Alex New", email: "new@example.com", phone: "" }, customer, store,
+    readContacts: async () => [], people: { people: { createContact: async () => ({ data: { resourceName: "people/new" } }) } },
+  });
+  const refreshed = buildCrm({ now, ...await store.readAll(), events: [booking, { ...booking, id: "new-booking" }],
+    contacts: [{ resourceName: "people/new", names: [{ displayName: "Alex New" }], emailAddresses: [{ value: "new@example.com" }] }],
+  });
+  assert.equal(refreshed.customers.length, 1);
+  assert.equal(refreshed.customers[0].active, false);
+  assert.equal(refreshed.customers[0].groomPrice, 75.5);
+  assert.equal(refreshed.customers[0].history.length, 2);
+  assert.equal(followUpRows(refreshed.customers).length, 0);
+});
+
+test("customer pricing supports overrides, free grooms and clearing, without changing status or contact details", async () => {
+  const { store, cells } = memoryStore();
+  const base = { id: "people/price", name: "Alex", emails: [], phones: [], dogs: [], active: false };
+  const input = { ...payload(), groomPrice: "85.25" };
+  await saveClientPricing({ payload: input, customer: base, store });
+  await saveClientPricing({ payload: input, customer: base, store });
+  assert.equal(cells.Clients.length, 2);
+  let customer = buildCrm({ ...await store.readAll(), now }).customers[0];
+  assert.equal(customer.groomPrice, 85.25);
+  assert.equal(customer.active, false);
+  for (const groomPrice of [-1, "2.555", "no", true, " ", 10001, undefined]) {
+    await assert.rejects(saveClientPricing({ payload: { ...payload(), recordRevision: customer.recordRevision, groomPrice }, customer, store }), { status: 400 });
+  }
+  await assert.rejects(saveClientPricing({ payload: { ...payload(), groomPrice: "90" }, customer, store }), { status: 409 });
+  await saveClientPricing({ payload: { ...payload(), recordRevision: customer.recordRevision, groomPrice: "0" }, customer, store });
+  customer = buildCrm({ ...await store.readAll(), now }).customers[0];
+  assert.equal(customer.groomPrice, 0);
+  await saveClientPricing({ payload: { ...payload(), recordRevision: customer.recordRevision, groomPrice: "" }, customer, store });
+  customer = buildCrm({ ...await store.readAll(), now }).customers[0];
+  assert.equal(customer.groomPrice, null);
+  assert.equal(customer.active, false);
+  assert.equal(customer.name, "Alex");
 });

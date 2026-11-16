@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { FaPaw, FaUsers, FaCalendarAlt, FaClock, FaSyncAlt, FaSignOutAlt, FaExternalLinkAlt } from "react-icons/fa";
+import { FaPaw, FaUsers, FaCalendarAlt, FaClock, FaSyncAlt, FaSignOutAlt, FaExternalLinkAlt, FaChartBar } from "react-icons/fa";
 import CustomerDialog from "./CustomerDialog";
 import RebookDialog from "./RebookDialog";
 
@@ -47,7 +47,7 @@ export default function CrmProvider({ children }) {
   };
   const rebook = (customer, dog = null) => { setCustomerId(null); setBooking({ customer, dog }); };
   const currentCustomer = data?.customers.find((customer) => customer.id === customerId);
-  const nav = [{ href: "/admin/due", label: "Due for a groom", icon: FaClock }, { href: "/admin/clients", label: "All clients", icon: FaUsers }, { href: "/admin/upcoming", label: "Upcoming", icon: FaCalendarAlt }];
+  const nav = [{ href: "/admin/due", label: "Due for a groom", icon: FaClock }, { href: "/admin/clients", label: "All clients", icon: FaUsers }, { href: "/admin/upcoming", label: "Upcoming", icon: FaCalendarAlt }, { href: "/admin/reporting", label: "Reporting", icon: FaChartBar }];
   return <CrmContext.Provider value={{ data, loading, error, refresh, rebook, openCustomer: (customer) => setCustomerId(customer.id), setNotice }}>
     <div className="crm-shell">
       <aside className="crm-sidebar">
