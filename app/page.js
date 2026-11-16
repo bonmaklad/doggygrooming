@@ -1108,6 +1108,10 @@ export default function HomePage() {
             <FaEnvelope /> cutandcuddle01@gmail.com
           </a>
         </div>
+        <nav className="container footer-policy-links" aria-label="Website information">
+          <a href="/privacy">Privacy notice</a>
+          <a href="/terms">Booking terms</a>
+        </nav>
       </footer>
     </>
   );

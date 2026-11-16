@@ -1,0 +1,45 @@
+.information-page {
+  font-family: var(--font-body, "Segoe UI"), Tahoma, sans-serif;
+  width: min(760px, 92vw);
+  margin: 0 auto;
+  padding: clamp(2rem, 6vw, 5rem) 0;
+}
+
+.information-page h1,
+.information-page h2 {
+  font-family: var(--font-heading, "Segoe UI"), Tahoma, sans-serif;
+}
+
+.information-page nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 2.5rem;
+}
+
+.information-page a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.information-page h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+}
+
+.information-page h2 {
+  margin-top: 2rem;
+  font-size: 1.3rem;
+}
+
+.information-page ul {
+  list-style: disc;
+  padding-left: 1.4rem;
+}
+
+.information-page li + li {
+  margin-top: 0.5rem;
+}
+
+.information-page .updated {
+  color: var(--color-muted);
+}

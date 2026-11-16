@@ -35,6 +35,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+.footer-policy-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding-top: 1rem;
+}
+
+.footer-policy-links a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
 img,
 picture,
 video,
