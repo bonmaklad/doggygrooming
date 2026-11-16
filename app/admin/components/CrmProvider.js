@@ -53,15 +53,15 @@ export default function CrmProvider({ children }) {
       <aside className="crm-sidebar">
         <Link href="/admin/due" className="crm-brand"><span className="crm-brand-mark"><FaPaw /></span><span>Cut & Cuddle<small>CLIENT CARE</small></span></Link>
         <div className="crm-nav-label">YOUR WORKSPACE</div><nav aria-label="Admin navigation">{nav.map(({ href, label, icon: Icon }) => <Link key={href} href={href} className={`crm-nav-link ${pathname === href ? "is-active" : ""}`} aria-current={pathname === href ? "page" : undefined}><Icon />{label}</Link>)}</nav>
-        <div className="crm-sidebar-note"><FaPaw /><strong>A little nudge, a lot of care.</strong><p>Small dogs every 6 months.<br />Medium every 4. Large every 3.</p></div>
-        <div className="crm-sidebar-bottom"><Link href="/" target="_blank" rel="noreferrer"><FaExternalLinkAlt /> View website</Link><button onClick={signOut}><FaSignOutAlt /> Sign out</button></div>
+        <div className="crm-sidebar-note"><FaPaw /><strong>A little nudge, a lot of care.</strong><p>Every dog, every 8 weeks.<br />A regular groom for all sizes.</p></div>
+        <div className="crm-sidebar-bottom">{data?.spreadsheetUrl && <a href={data.spreadsheetUrl} target="_blank" rel="noreferrer"><FaExternalLinkAlt /> Open records sheet</a>}<Link href="/" target="_blank" rel="noreferrer"><FaExternalLinkAlt /> View website</Link><button onClick={signOut}><FaSignOutAlt /> Sign out</button></div>
       </aside>
-      <div className="crm-main-wrap"><header className="crm-topbar"><span><span className={`crm-connection-dot ${data ? "is-connected" : ""}`} />{data ? "Google Calendar connected" : "Client care workspace"}</span><button className="crm-button crm-secondary crm-small" onClick={refresh} disabled={loading}><FaSyncAlt className={loading ? "crm-spin" : ""} />{loading ? "Refreshing…" : "Refresh"}</button></header>
+      <div className="crm-main-wrap"><header className="crm-topbar"><span><span className={`crm-connection-dot ${data ? "is-connected" : ""}`} />{data ? `Calendar${data.contactsConnected ? " · Contacts" : ""}${data.sheetsConnected ? " · Sheets" : ""} connected` : "Client care workspace"}</span><button className="crm-button crm-secondary crm-small" onClick={refresh} disabled={loading}><FaSyncAlt className={loading ? "crm-spin" : ""} />{loading ? "Refreshing…" : "Refresh"}</button></header>
         <main className="crm-main">
           {notice && <div role="status" className="crm-notice">{notice}<button aria-label="Dismiss notification" onClick={() => setNotice("")}>×</button></div>}
           {error && <div role="alert" className="crm-error-panel"><strong>We couldn’t refresh your Google data.</strong><p>{error}</p>{data && <p>You’re viewing the last successful refresh. Refresh before rebooking.</p>}<button className="crm-button crm-secondary crm-small" onClick={refresh} disabled={loading}>Try again</button></div>}
           {data?.warnings.map((warning) => <div key={warning} role="status" className="crm-warning">{warning}</div>)}
-          {loading && !data ? <div className="crm-loading" role="status"><FaPaw className="crm-spin" /><h1>Gathering your clients…</h1><p>Reading contacts and appointments from Google.</p></div> : data ? children : !error ? <p>Loading your workspace…</p> : null}
+          {loading && !data ? <div className="crm-loading" role="status"><FaPaw className="crm-spin" /><h1>Gathering your clients…</h1><p>Reading contacts, appointments and saved records from Google.</p></div> : data ? children : !error ? <p>Loading your workspace…</p> : null}
         </main><footer className="crm-footer">Cut & Cuddle · A little care goes a long way.{data && <span>Last refreshed {new Intl.DateTimeFormat("en-NZ", { hour: "numeric", minute: "2-digit", timeZone: data.timeZone }).format(new Date(data.syncedAt))} · {data.timeZone}</span>}</footer>
       </div>
     </div>

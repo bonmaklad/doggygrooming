@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { addCalendarMonths, buildCrm, localDateKey, normalizePhone, parseAppointment } from "../lib/crm.js";
+import { addCalendarDays, buildCrm, localDateKey, normalizePhone, parseAppointment } from "../lib/crm.js";
 import { formatDate } from "../app/admin/components/format.js";
 
 const now = new Date("2026-11-10T00:00:00Z");
@@ -12,11 +12,11 @@ const event = (id, start, extra = {}) => ({
 });
 const contact = (id, name, emails, phones = []) => ({ resourceName: id, names: [{ displayName: name }], emailAddresses: emails.map((value) => ({ value })), phoneNumbers: phones.map((value) => ({ value })) });
 
-test("calendar-month addition clamps month ends and leap years", () => {
-  assert.equal(addCalendarMonths("2026-08-31", 6), "2027-02-28");
-  assert.equal(addCalendarMonths("2023-08-31", 6), "2024-02-29");
-  assert.equal(addCalendarMonths("2026-11-30", 3), "2027-02-28");
-  assert.equal(addCalendarMonths("2026-05-10", 6), "2026-11-10");
+test("eight-week addition remains 56 days across month ends, leap years and DST", () => {
+  assert.equal(addCalendarDays("2026-08-31", 56), "2026-10-26");
+  assert.equal(addCalendarDays("2024-01-15", 56), "2024-03-11");
+  assert.equal(addCalendarDays("2026-11-30", 56), "2027-01-25");
+  assert.equal(addCalendarDays("2026-09-20", 56), "2026-11-15");
 });
 
 test("NZ time and phone identities normalize consistently", () => {
@@ -62,17 +62,17 @@ test("contacts without bookings remain visible and same-name owners aren't merge
   assert.equal(crm.customers[0].dogs.length, 0);
 });
 
-test("small, medium and large dogs have independent 6, 4 and 3 month due dates", () => {
+test("every size uses eight weeks while each dog keeps its own last-groom date", () => {
   const events = [
-    event("s", "2026-05-10T01:00:00Z"),
+    event("s", "2026-09-20T01:00:00Z"),
     event("m", "2026-07-20T01:00:00Z", { extendedProperties: { private: { ccDogName: "Milo", ccDogSize: "Medium" } } }),
     event("l", "2026-07-10T01:00:00Z", { extendedProperties: { private: { ccDogName: "Bear", ccDogSize: "Large" } } }),
   ];
   const dogs = buildCrm({ now, events }).customers[0].dogs;
-  assert.equal(dogs.find((dog) => dog.name === "Poppy").dueDate, "2026-11-10");
+  assert.equal(dogs.find((dog) => dog.name === "Poppy").dueDate, "2026-11-15");
   assert.equal(dogs.find((dog) => dog.name === "Poppy").status, "this-month");
-  assert.equal(dogs.find((dog) => dog.name === "Milo").dueDate, "2026-11-20");
-  assert.equal(dogs.find((dog) => dog.name === "Bear").dueDate, "2026-10-10");
+  assert.equal(dogs.find((dog) => dog.name === "Milo").dueDate, "2026-09-14");
+  assert.equal(dogs.find((dog) => dog.name === "Bear").dueDate, "2026-09-04");
   assert.equal(dogs.find((dog) => dog.name === "Bear").status, "overdue");
 });
 
@@ -85,7 +85,7 @@ test("a future booking suppresses only that dog's due reminder", () => {
 test("no-shows and cancelled events don't reset a dog's cycle or count as visits", () => {
   const crm = buildCrm({ now, events: [event("old", "2026-01-10T01:00:00Z"), event("missed", "2026-09-10T01:00:00Z", { extendedProperties: { private: { ccAttendance: "no-show" } } }), event("cancelled", "2026-10-10T01:00:00Z", { status: "cancelled" })] });
   assert.equal(crm.customers[0].pastBookings, 1);
-  assert.equal(crm.customers[0].dogs[0].dueDate, "2026-07-10");
+  assert.equal(crm.customers[0].dogs[0].dueDate, "2026-03-07");
   assert.equal(crm.customers[0].history.length, 2);
 });
 
@@ -114,4 +114,11 @@ test("unnamed dogs need review rather than merging an owner's pets into a guesse
   const crm = buildCrm({ now, events: [event("unnamed", "2026-01-10T01:00:00Z", { summary: "Full Groom", extendedProperties: { private: { ccDogName: "" } } })] });
   assert.equal(crm.customers[0].dogs[0].dueDate, null);
   assert.equal(crm.customers[0].dogs[0].status, "needs-details");
+});
+
+
+test("a named dog without a recorded size still follows eight weeks", () => {
+  const crm = buildCrm({ now, events: [event("unknown-size", "2026-09-20T01:00:00Z", { extendedProperties: { private: { ccDogSize: "" } } })] });
+  assert.equal(crm.customers[0].dogs[0].dueDate, "2026-11-15");
+  assert.equal(crm.customers[0].dogs[0].interval, 8);
 });
