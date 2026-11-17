@@ -7,10 +7,21 @@ import { buildCrm, followUpRows } from "../lib/crm.js";
 
 const memoryStore = () => {
   const cells = Object.fromEntries(Object.entries(STORE_HEADERS).map(([tab, headers]) => [tab, [[...headers]]]));
-  const sheets = { spreadsheets: { values: {
-    get: async ({ range }) => ({ data: { values: cells[range.split("'")[1]] } }),
-    append: async ({ range, requestBody, valueInputOption }) => { assert.equal(valueInputOption, "RAW"); cells[range.split("'")[1]].push(...requestBody.values); return {}; },
-  } } };
+  const tabIds = { Clients: 17, Dogs: 0, Visits: 42 };
+  const sheets = { spreadsheets: {
+    get: async () => ({ data: { sheets: Object.entries(tabIds).map(([title, sheetId]) => ({ properties: { title, sheetId } })) } }),
+    batchUpdate: async ({ requestBody }, options) => {
+      assert.equal(options.retry, false);
+      for (const { appendCells } of requestBody.requests) {
+        assert.equal(appendCells.fields, "userEnteredValue");
+        const tab = Object.keys(tabIds).find((name) => tabIds[name] === appendCells.sheetId);
+        cells[tab].push(...appendCells.rows.map((row) => row.values.map(({ userEnteredValue: value }) => value.numberValue ?? value.stringValue)));
+      }
+    },
+    values: {
+      get: async ({ range }) => ({ data: { values: cells[range.split("'")[1]] } }),
+    },
+  } };
   return { cells, store: createCrmStore(sheets, "test") };
 };
 const now = new Date("2026-11-17T00:00:00Z");
@@ -45,6 +56,22 @@ test("sheet saves survive sort, retry and simultaneous edits without silently ov
 test("malformed payment data and missing headers fail closed", () => {
   assert.throws(() => decodeRecords("Visits", []), /headers/);
   assert.throws(() => decodeRecords("Visits", [STORE_HEADERS.Visits, encodeRecord("Visits", { id: "a", revision: "r", updatedAt: now.toISOString(), amountPaid: "unpaid" })]), /Invalid payment/);
+});
+
+test("client saves keep the header and all earlier rows intact, including literal text and zero prices", async () => {
+  const { store, cells } = memoryStore();
+  const first = await store.save("Clients", { id: "a", name: "=A1", phone: "0210000000", groomPrice: 0 }, "", "first");
+  const before = structuredClone(cells.Clients);
+  cells.Clients.push([]); // Blank rows must not turn the header into an append target.
+  await store.save("Clients", { ...first, notes: "+Keep as text", groomPrice: 85.5 }, first.revision, "second");
+  assert.deepEqual(cells.Clients.slice(0, before.length), before);
+  assert.equal(cells.Clients.length, 4);
+  const [saved] = await store.read("Clients");
+  assert.equal(saved.name, "=A1");
+  assert.equal(saved.phone, "0210000000");
+  assert.equal(saved.notes, "+Keep as text");
+  assert.equal(saved.groomPrice, 85.5);
+  assert.equal(cells.Clients[1][13], 0);
 });
 
 test("renamed contacts and dogs retain history, use current contact details, and keep old Calendar payments", () => {

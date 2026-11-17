@@ -5,7 +5,7 @@ import { getGoogleAuthClient, getSheetsClient, getCalendarConfig } from "../lib/
 import { readCalendarEvents, readContacts } from "../lib/googleCrm.js";
 import { buildCrm } from "../lib/crm.js";
 import { clientRecord } from "../lib/crmRecords.js";
-import { STORE_HEADERS, createCrmStore, encodeRecord } from "../lib/crmStore.js";
+import { STORE_HEADERS, createCrmStore, createSheetAppender, encodeRecord } from "../lib/crmStore.js";
 
 try {
 // Use only the app's business OAuth token, never a personal Drive connector.
@@ -63,13 +63,14 @@ const records = {
   Visits: current.customers.flatMap((customer) => customer.history.map((visit) => ({ ...visit, calendarId, name: customer.name }))),
 };
 const counts = {};
+const append = createSheetAppender(sheets, spreadsheetId);
 for (const tab of tabs) {
   const missing = records[tab].filter((row) => !existing[tab].has(row.id));
   const values = missing.map((row) => encodeRecord(tab, { ...row, revision: `import:${createHash("sha256").update(`${spreadsheetId}:${tab}:${row.id}`).digest("hex")}`, previousRevision: "", updatedAt: new Date().toISOString() }));
   // Sequential batches stay inside quota. Exact duplicate revision rows from an
   // ambiguous network response are safely deduplicated on read.
   for (let offset = 0; offset < values.length; offset += 500) {
-    await sheets.spreadsheets.values.append({ spreadsheetId, range: `'${tab}'!A1`, valueInputOption: "RAW", insertDataOption: "INSERT_ROWS", requestBody: { values: values.slice(offset, offset + 500) } }, { retry: false });
+    await append(tab, values.slice(offset, offset + 500));
   }
   counts[tab] = { imported: values.length, existing: existing[tab].size };
 }
